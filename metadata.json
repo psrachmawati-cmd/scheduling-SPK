@@ -1,0 +1,6 @@
+{
+  "name": "OptiWBS - Monitoring & Scheduling Operasional",
+  "description": "Platform monitoring pelaksanaan proyek berbasis WBS, Kurva-S, manajemen sub-kontraktor, dan timesheet operasional.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
