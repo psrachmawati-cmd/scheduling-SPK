@@ -40,6 +40,7 @@ export const WbsGanttView: React.FC = () => {
     wbsNodes,
     project,
     projects,
+    accessibleProjects,
     activeProjectId,
     switchProject,
     subcontractors,
@@ -227,7 +228,7 @@ export const WbsGanttView: React.FC = () => {
                 onChange={(e) => switchProject(e.target.value)}
                 className="w-full pl-3 pr-8 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:bg-white focus:bg-white font-semibold text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
               >
-                {projects.map((p) => (
+                {(currentUser.subcontractorId ? accessibleProjects : projects).map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.code} • {p.name.slice(0, 42)}... ({p.currentProgressActual}%)
                   </option>
@@ -244,14 +245,19 @@ export const WbsGanttView: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setIsEditSpkOpen(true)}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition"
-              title="Edit Range Waktu, Nilai Kontrak, atau Terapkan Ulang WBS Standar"
-            >
-              <Edit3 className="w-3.5 h-3.5 text-slate-500" />
-              <span>Edit SPK</span>
-            </button>
+            {(currentUser.role === 'SUPER_ADMIN' ||
+              currentUser.actorType === 'SUPER_ADMIN' ||
+              currentUser.actorType === 'KOORDINATOR_ADMINISTRASI' ||
+              currentUser.role === 'PROJECT_MANAGER') && (
+              <button
+                onClick={() => setIsEditSpkOpen(true)}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition"
+                title="Edit Range Waktu, Nilai Kontrak, atau Terapkan Ulang WBS Standar"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-slate-500" />
+                <span>Edit SPK</span>
+              </button>
+            )}
 
             <span
               className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
@@ -774,13 +780,15 @@ export const WbsGanttView: React.FC = () => {
                         {(currentUser.role === 'PROJECT_MANAGER' ||
                           currentUser.role === 'SUPER_ADMIN') && (
                           <>
-                            <button
-                              onClick={() => handleOpenAddModal(node.id)}
-                              className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-slate-100"
-                              title="Tambah Sub-Task"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                            </button>
+                            {node.level === 0 && (
+                              <button
+                                onClick={() => handleOpenAddModal(node.id)}
+                                className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-slate-100"
+                                title="Tambah Sub-Task (Orde 2)"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                             <button
                               onClick={() => {
                                 if (

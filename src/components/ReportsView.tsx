@@ -11,28 +11,45 @@ import {
   TrendingDown,
   Building,
   Filter,
+  Activity,
+  Gauge,
+  FileCheck,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import {
   exportWbsProgressCSV,
   exportTimesheetCSV,
   exportSCurveCSV,
+  exportTerrestrialProductivityCSV,
   printReport,
 } from '../utils/exportUtils';
 import { formatIDR } from '../utils/wbsLogic';
 
 export const ReportsView: React.FC = () => {
-  const { project, wbsNodes, timesheets, scurveData } = useApp();
+  const {
+    project,
+    wbsNodes,
+    timesheets,
+    scurveData,
+    terrestrialProductivityLogs,
+  } = useApp();
 
   const [selectedReportType, setSelectedReportType] = useState<
-    'WBS_PROGRESS' | 'S_CURVE' | 'TIMESHEET_SUMMARY' | 'DEVIATION_DELAY'
-  >('WBS_PROGRESS');
+    | 'TERRESTRIAL_PRODUCTIVITY'
+    | 'WBS_PROGRESS'
+    | 'S_CURVE'
+    | 'TIMESHEET_SUMMARY'
+    | 'DEVIATION_DELAY'
+  >('TERRESTRIAL_PRODUCTIVITY');
 
   // Delayed tasks for deviation report
   const delayedTasks = wbsNodes.filter((n) => n.status === 'DELAYED');
 
   const handleExportCSV = () => {
     switch (selectedReportType) {
+      case 'TERRESTRIAL_PRODUCTIVITY':
+        exportTerrestrialProductivityCSV(terrestrialProductivityLogs);
+        break;
       case 'WBS_PROGRESS':
         exportWbsProgressCSV(project, wbsNodes);
         break;
@@ -63,7 +80,7 @@ export const ReportsView: React.FC = () => {
               </h1>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Generate laporan otomatis untuk Direksi, Klien, Pengawas MK, dan Sub-Kontraktor (Spec 5.5)
+              Generate laporan resmi operasional untuk Pertamina EP Zona 4, Manajemen, dan Subkontraktor
             </p>
           </div>
 
@@ -87,7 +104,21 @@ export const ReportsView: React.FC = () => {
         </div>
 
         {/* Report Tabs Selector */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-5 pt-4 border-t border-slate-100 text-xs">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 mt-5 pt-4 border-t border-slate-100 text-xs">
+          <button
+            onClick={() => setSelectedReportType('TERRESTRIAL_PRODUCTIVITY')}
+            className={`p-3 rounded-xl border text-left transition ${
+              selectedReportType === 'TERRESTRIAL_PRODUCTIVITY'
+                ? 'border-blue-500 bg-blue-50/60 font-bold text-blue-900 shadow-2xs'
+                : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+            }`}
+          >
+            <div className="text-xs font-bold">1. Monitoring Produktivitas</div>
+            <div className="text-[10px] text-slate-500 font-normal mt-0.5">
+              Ha / Tim / Hari Terestris
+            </div>
+          </button>
+
           <button
             onClick={() => setSelectedReportType('WBS_PROGRESS')}
             className={`p-3 rounded-xl border text-left transition ${
@@ -96,9 +127,9 @@ export const ReportsView: React.FC = () => {
                 : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
             }`}
           >
-            <div className="text-xs">1. Progress Report per WBS</div>
+            <div className="text-xs font-bold">2. Progress per WBS</div>
             <div className="text-[10px] text-slate-500 font-normal mt-0.5">
-              Tabel detail perbandingan plan vs realisasi
+              Tabel detail plan vs actual
             </div>
           </button>
 
@@ -110,9 +141,9 @@ export const ReportsView: React.FC = () => {
                 : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
             }`}
           >
-            <div className="text-xs">2. S-Curve Report</div>
+            <div className="text-xs font-bold">3. S-Curve Report</div>
             <div className="text-[10px] text-slate-500 font-normal mt-0.5">
-              Kumulatif progres sepanjang waktu
+              Kumulatif progres mingguan
             </div>
           </button>
 
@@ -124,9 +155,9 @@ export const ReportsView: React.FC = () => {
                 : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
             }`}
           >
-            <div className="text-xs">3. Rekapitulasi Timesheet</div>
+            <div className="text-xs font-bold">4. Rekap Timesheet</div>
             <div className="text-[10px] text-slate-500 font-normal mt-0.5">
-              Total jam kerja & lembur per tenaga kerja
+              Jam kerja tenaga kerja
             </div>
           </button>
 
@@ -138,9 +169,9 @@ export const ReportsView: React.FC = () => {
                 : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
             }`}
           >
-            <div className="text-xs">4. Deviation & Delay Report</div>
+            <div className="text-xs font-bold">5. Deviasi & Delay</div>
             <div className="text-[10px] text-slate-500 font-normal mt-0.5">
-              Daftar task terlambat & deviasi
+              Daftar task terlambat
             </div>
           </button>
         </div>
@@ -153,48 +184,83 @@ export const ReportsView: React.FC = () => {
           <div className="flex items-start justify-between">
             <div>
               <div className="text-xs font-bold tracking-widest text-slate-400 uppercase">
-                LAPORAN RESMI OPERASIONAL & MONITORING PROYEK
+                PT PERTAMINA EP ZONA 4 • COPYRIGHT © PT SUCOFINDO CABANG PALEMBANG
               </div>
               <h2 className="text-xl font-extrabold text-slate-900 mt-1">
-                {selectedReportType === 'WBS_PROGRESS' && 'LAPORAN REALISASI & ROLL-UP PROGRESS WBS'}
-                {selectedReportType === 'S_CURVE' && 'LAPORAN HISTORI & PROGRES KUMULATIF KURVA-S'}
-                {selectedReportType === 'TIMESHEET_SUMMARY' && 'REKAPITULASI TIMESHEET & PRODUKTIVITAS TENAGA KERJA'}
-                {selectedReportType === 'DEVIATION_DELAY' && 'LAPORAN KETERLAMBATAN & DEVIASI JADWAL (DELAY REPORT)'}
+                {selectedReportType === 'TERRESTRIAL_PRODUCTIVITY' &&
+                  'MONITORING PRODUKTIVITAS SURVEI TERESTRIS / PENGUKURAN DETIL (HA/TIM/HARI)'}
+                {selectedReportType === 'WBS_PROGRESS' &&
+                  'LAPORAN REALISASI & ROLL-UP PROGRESS WBS'}
+                {selectedReportType === 'S_CURVE' &&
+                  'LAPORAN HISTORI & PROGRES KUMULATIF KURVA-S'}
+                {selectedReportType === 'TIMESHEET_SUMMARY' &&
+                  'REKAPITULASI TIMESHEET & PRODUKTIVITAS TENAGA KERJA'}
+                {selectedReportType === 'DEVIATION_DELAY' &&
+                  'LAPORAN KETERLAMBATAN & DEVIASI JADWAL (DELAY REPORT)'}
               </h2>
               <p className="text-xs text-slate-600 mt-1">
-                Proyek: <strong>{project.name}</strong> ({project.code})
+                Wilayah Operasional: Prabumulih, Limau, Pendopo, Adera, Ramba • Klien: PT Pertamina EP Zona 4
               </p>
             </div>
             <div className="text-right text-xs text-slate-500 space-y-0.5">
-              <div>Tanggal Cetak: <span className="font-mono font-bold text-slate-800">{new Date().toLocaleDateString('id-ID')}</span></div>
-              <div>Klien: <span className="font-semibold text-slate-700">{project.client}</span></div>
-              <div>Baseline: <span className="font-semibold text-blue-600">{project.baselineLocked ? 'Locked (v1.0)' : 'Draft'}</span></div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-4 gap-4 mt-4 pt-3 border-t border-slate-200 text-xs">
-            <div>
-              <span className="text-slate-500">Nilai Kontrak:</span>
-              <div className="font-bold text-slate-900 font-mono">{formatIDR(project.contractValue)}</div>
-            </div>
-            <div>
-              <span className="text-slate-500">Rencana Kumulatif:</span>
-              <div className="font-bold text-indigo-700 font-mono">{project.targetProgressPlan}%</div>
-            </div>
-            <div>
-              <span className="text-slate-500">Realisasi Aktual:</span>
-              <div className="font-bold text-emerald-700 font-mono">{project.currentProgressActual}%</div>
-            </div>
-            <div>
-              <span className="text-slate-500">Deviasi Keseluruhan:</span>
-              <div className={`font-bold font-mono ${project.currentProgressActual - project.targetProgressPlan < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                {(project.currentProgressActual - project.targetProgressPlan).toFixed(1)}%
+              <div>
+                Tanggal Cetak:{' '}
+                <span className="font-mono font-bold text-slate-800">
+                  {new Date().toLocaleDateString('id-ID')}
+                </span>
+              </div>
+              <div>
+                Status Data: <span className="font-semibold text-emerald-700">10 September 2026</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 1. WBS PROGRESS REPORT CONTENT */}
+        {/* 1. TERRESTRIAL PRODUCTIVITY CONTENT */}
+        {selectedReportType === 'TERRESTRIAL_PRODUCTIVITY' && (
+          <div className="space-y-4">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 border-b border-slate-300 text-slate-700 font-semibold text-[11px]">
+                    <th className="p-2.5">Tanggal</th>
+                    <th className="p-2.5">Lokasi Bor & Field</th>
+                    <th className="p-2.5 text-center">Luas Terukur (Ha)</th>
+                    <th className="p-2.5 text-center">Jumlah Tim</th>
+                    <th className="p-2.5 text-center">Produktivitas (Ha/Tim/Hari)</th>
+                    <th className="p-2.5">Personil & Tim</th>
+                    <th className="p-2.5">Peralatan</th>
+                    <th className="p-2.5">Evaluasi & Catatan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {terrestrialProductivityLogs.map((log) => (
+                    <tr key={log.id}>
+                      <td className="p-2.5 font-mono text-[11px]">{log.date}</td>
+                      <td className="p-2.5 font-bold text-slate-900">
+                        {log.wellName} <span className="text-slate-400 font-normal">({log.fieldArea})</span>
+                      </td>
+                      <td className="p-2.5 text-center font-mono font-bold text-blue-700">
+                        {log.hectaresToday} Ha
+                      </td>
+                      <td className="p-2.5 text-center font-mono font-semibold text-slate-700">
+                        {log.teamsCount} Tim
+                      </td>
+                      <td className="p-2.5 text-center font-mono font-black text-emerald-700 bg-emerald-50/50">
+                        {log.productivityHaPerTeam} Ha/Tim/Hari
+                      </td>
+                      <td className="p-2.5 text-slate-700 text-[11px] max-w-xs truncate">{log.teamMembers || '-'}</td>
+                      <td className="p-2.5 text-slate-600 text-[11px]">{log.equipment}</td>
+                      <td className="p-2.5 text-slate-600 text-[11px] italic">{log.notes || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* 3. WBS PROGRESS REPORT CONTENT */}
         {selectedReportType === 'WBS_PROGRESS' && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
@@ -246,7 +312,7 @@ export const ReportsView: React.FC = () => {
           </div>
         )}
 
-        {/* 2. S-CURVE REPORT CONTENT */}
+        {/* 4. S-CURVE REPORT CONTENT */}
         {selectedReportType === 'S_CURVE' && (
           <div className="space-y-4">
             <div className="overflow-x-auto">
@@ -310,7 +376,7 @@ export const ReportsView: React.FC = () => {
           </div>
         )}
 
-        {/* 3. TIMESHEET SUMMARY CONTENT */}
+        {/* 5. TIMESHEET SUMMARY CONTENT */}
         {selectedReportType === 'TIMESHEET_SUMMARY' && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
@@ -367,7 +433,7 @@ export const ReportsView: React.FC = () => {
           </div>
         )}
 
-        {/* 4. DEVIATION / DELAY REPORT */}
+        {/* 6. DEVIATION / DELAY REPORT */}
         {selectedReportType === 'DEVIATION_DELAY' && (
           <div className="space-y-4">
             <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900 flex items-start space-x-3">
@@ -376,8 +442,7 @@ export const ReportsView: React.FC = () => {
                 <strong className="font-bold text-rose-950">Analisis Deviasi Operasional:</strong>
                 <p className="mt-0.5">
                   Terdapat {delayedTasks.length} paket pekerjaan yang melewati tanggal rencana (finish_plan) atau
-                  memiliki realisasi yang tertinggal dari baseline jadwal. Segera lakukan percepatan sumber daya tenaga
-                  kerja atau shift lembur.
+                  memiliki realisasi yang tertinggal dari baseline jadwal.
                 </p>
               </div>
             </div>
@@ -411,7 +476,7 @@ export const ReportsView: React.FC = () => {
                         <td className="p-2.5 text-center font-mono font-bold text-rose-600">{dev}%</td>
                         <td className="p-2.5 font-mono text-slate-500">{node.finishPlan}</td>
                         <td className="p-2.5 text-slate-700 font-medium">
-                          Penambahan 1 shift lembur malam + pengiriman batch material baja dipercepat
+                          Penambahan personil survey & percepatan drafting CAD
                         </td>
                       </tr>
                     );
@@ -431,8 +496,8 @@ export const ReportsView: React.FC = () => {
           </div>
           <div>
             <p className="text-slate-500 mb-16">Mengetahui (Koordinator Subkontraktor):</p>
-            <p className="font-bold text-slate-900 underline">Ivan</p>
-            <p className="text-[11px] text-slate-400">Koordinator Subkontraktor (KJSB Subkhi Abdul Hakim & Syahrial)</p>
+            <p className="font-bold text-slate-900 underline">Ivan / Juli</p>
+            <p className="text-[11px] text-slate-400">Koordinator Subkontraktor Resmi (KJSB Subkhi & Syahrial)</p>
           </div>
           <div>
             <p className="text-slate-500 mb-16">Disetujui Oleh (Super Admin):</p>

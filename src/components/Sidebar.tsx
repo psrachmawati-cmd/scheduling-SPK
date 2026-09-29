@@ -13,11 +13,13 @@ import {
   AlertCircle,
   Briefcase,
   Layers3,
+  LogOut,
+  UserCheck,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export const Sidebar: React.FC = () => {
-  const { activeTab, setActiveTab, currentUser, timesheets, dailyTasks, wbsNodes, projects } = useApp();
+  const { activeTab, setActiveTab, currentUser, timesheets, dailyTasks, wbsNodes, projects, logout } = useApp();
 
   // Pending timesheets count for PM / Supervisor approval
   const pendingTimesheetsCount = timesheets.filter((t) => t.status === 'PENDING').length;
@@ -55,8 +57,10 @@ export const Sidebar: React.FC = () => {
       id: 'progress_input',
       label: 'Input Progres Lapangan',
       icon: PenTool,
-      description: 'Update realisasi & log snapshot',
-      highlight: currentUser.role === 'SUBCONTRACTOR' || currentUser.role === 'SITE_SUPERVISOR',
+      description: 'Input ha/tim terestris & progres %',
+      badge: 'Produktivitas',
+      badgeColor: 'bg-emerald-100 text-emerald-800',
+      highlight: true,
     },
     {
       id: 'timesheet',
@@ -168,6 +172,21 @@ export const Sidebar: React.FC = () => {
               {currentUser.subcontractorName}
             </p>
           )}
+
+          <button
+            onClick={logout}
+            className="w-full mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-center space-x-1.5 text-slate-500 hover:text-rose-600 text-xs font-semibold py-1 rounded-lg hover:bg-rose-50 transition"
+            title="Keluar dari sesi akun dan buka halaman login"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Keluar (Logout)</span>
+          </button>
+        </div>
+
+        <div className="mt-2 text-center">
+          <p className="text-[10px] text-slate-400 font-medium">
+            Copyright © PT Sucofindo Cabang Palembang
+          </p>
         </div>
       </div>
     </aside>

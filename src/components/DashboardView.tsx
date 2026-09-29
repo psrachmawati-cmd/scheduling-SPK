@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ResponsiveContainer,
   XAxis,
@@ -20,13 +20,23 @@ import {
   Diamond,
   Flame,
   AlertTriangle,
+  AlertOctagon,
   CheckCircle2,
   Layers3,
   ArrowUpRight,
   Briefcase,
+  Activity,
+  Gauge,
+  Search,
+  Filter,
+  Users,
+  Compass,
+  FileCheck,
+  Calendar,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatIDR } from '../utils/wbsLogic';
+import { TopographyDailyReportItem } from '../types';
 
 export const DashboardView: React.FC = () => {
   const {
@@ -38,6 +48,8 @@ export const DashboardView: React.FC = () => {
     scurveData,
     subcontractors,
     progressLogs,
+    topographyDailyReports,
+    terrestrialProductivityLogs,
     setActiveTab,
     setBaseline,
     currentUser,
@@ -46,7 +58,7 @@ export const DashboardView: React.FC = () => {
   const deviation = Number((project.currentProgressActual - project.targetProgressPlan).toFixed(2));
   const isDelayed = deviation < 0;
 
-  // Status counts
+  // Status counts for active project
   const completedCount = wbsNodes.filter((n) => n.status === 'COMPLETED').length;
   const inProgressCount = wbsNodes.filter((n) => n.status === 'ON_PROGRESS').length;
   const delayedCount = wbsNodes.filter((n) => n.status === 'DELAYED').length;
@@ -54,37 +66,106 @@ export const DashboardView: React.FC = () => {
 
   // Milestones in this SPK
   const milestones = wbsNodes.filter((n) => n.isMilestone);
-  const criticalTasks = wbsNodes.filter((n) => n.isCritical);
+
+  // Search & Filter for 10 September Topography Report Grid
+  const [reportSearch, setReportSearch] = useState('');
+  const [reportFilter, setReportFilter] = useState<'ALL' | 'DONE' | 'ON_PROGRESS' | 'DELAYED'>('ALL');
+
+  const filteredReports = useMemo(() => {
+    return topographyDailyReports.filter((r) => {
+      if (
+        reportSearch &&
+        !r.title.toLowerCase().includes(reportSearch.toLowerCase()) &&
+        !r.wellName.toLowerCase().includes(reportSearch.toLowerCase()) &&
+        !r.plannedActivityToday.toLowerCase().includes(reportSearch.toLowerCase())
+      ) {
+        return false;
+      }
+      if (reportFilter === 'DONE') {
+        return r.cumProgress >= 100;
+      }
+      if (reportFilter === 'ON_PROGRESS') {
+        return r.cumProgress < 100;
+      }
+      if (reportFilter === 'DELAYED') {
+        return r.deviation < 0;
+      }
+      return true;
+    });
+  }, [topographyDailyReports, reportSearch, reportFilter]);
+
+  // Overall Statistics from 10 September Report
+  const totalReportsCount = topographyDailyReports.length;
+  const doneReportsCount = topographyDailyReports.filter((r) => r.cumProgress >= 100).length;
+  const onProgressCount = topographyDailyReports.filter((r) => r.cumProgress < 100).length;
+  const delayedReportsCount = topographyDailyReports.filter((r) => r.deviation < 0).length;
+
+  // Terrestrial Productivity Summary
+  const avgProductivity = useMemo(() => {
+    if (!terrestrialProductivityLogs || terrestrialProductivityLogs.length === 0) return 0.65;
+    const sum = terrestrialProductivityLogs.reduce((acc, cur) => acc + cur.productivityHaPerTeam, 0);
+    return Number((sum / terrestrialProductivityLogs.length).toFixed(2));
+  }, [terrestrialProductivityLogs]);
+
+  const totalHectaresToday = useMemo(() => {
+    return terrestrialProductivityLogs
+      .filter((l) => l.date === '2026-09-10')
+      .reduce((acc, cur) => acc + cur.hectaresToday, 0);
+  }, [terrestrialProductivityLogs]);
+
+  const totalActiveTeams = useMemo(() => {
+    return terrestrialProductivityLogs
+      .filter((l) => l.date === '2026-09-10')
+      .reduce((acc, cur) => acc + cur.teamsCount, 0);
+  }, [terrestrialProductivityLogs]);
+
+  const handleSelectReportLocation = (wellName: string) => {
+    const matched = projects.find(
+      (p) =>
+        p.wellName?.toLowerCase().includes(wellName.toLowerCase()) ||
+        p.name.toLowerCase().includes(wellName.toLowerCase())
+    );
+    if (matched) {
+      switchProject(matched.id);
+    }
+  };
 
   return (
     <div className="space-y-6 pb-12">
       {/* 10 SPK Operational Context Banner */}
-      <div className="bg-gradient-to-r from-slate-900 to-blue-950 text-white rounded-2xl p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-blue-950 text-white rounded-2xl p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
             <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-400/30 uppercase tracking-wider">
               Monitoring Operasional Simultan
             </span>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-              {projects.length} Paket SPK
+              Status Resmi: 10 September 2026
             </span>
           </div>
           <h2 className="text-lg font-bold text-white mt-1.5">
             Wilayah Kerja Pertamina EP Zona 4 (Prabumulih, Limau, Pendopo, Adera, Ramba)
           </h2>
           <p className="text-xs text-slate-300 mt-0.5">
-            Pekerjaan survey pemetaan terestris, drone LiDAR, fotogrametri, dan pelaporan berkala.
+            Pekerjaan survey pemetaan terestris, pembuatan BM, drone LiDAR, fotogrametri, dan desain siteplan.
           </p>
         </div>
 
         <div className="flex items-center space-x-3 shrink-0">
           <button
-            onClick={() => setActiveTab('portfolio')}
+            onClick={() => setActiveTab('progress_input')}
             className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-xs transition flex items-center space-x-1.5"
           >
+            <PenTool className="w-4 h-4" />
+            <span>Input Progres Lapangan</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('portfolio')}
+            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold border border-slate-700 transition flex items-center space-x-1.5"
+          >
             <Briefcase className="w-4 h-4" />
-            <span>Buka Monitoring SPK</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
+            <span>Daftar SPK</span>
           </button>
         </div>
       </div>
@@ -113,7 +194,7 @@ export const DashboardView: React.FC = () => {
 
               <span
                 className={`text-xs px-2.5 py-0.5 rounded-full border font-semibold flex items-center ${
-                  project.healthStatus === 'ON_TRACK'
+                  project.healthStatus === 'ON_TRACK' || project.healthStatus === 'COMPLETED'
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     : project.healthStatus === 'CRITICAL'
                     ? 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse'
@@ -153,17 +234,13 @@ export const DashboardView: React.FC = () => {
               </button>
             )}
 
-            {(currentUser.role === 'SUBCONTRACTOR' ||
-              currentUser.role === 'SITE_SUPERVISOR' ||
-              currentUser.role === 'PROJECT_MANAGER') && (
-              <button
-                onClick={() => setActiveTab('progress_input')}
-                className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition"
-              >
-                <PenTool className="w-4 h-4" />
-                <span>Input Progres Aktual</span>
-              </button>
-            )}
+            <button
+              onClick={() => setActiveTab('progress_input')}
+              className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition"
+            >
+              <PenTool className="w-4 h-4" />
+              <span>Input Progres Aktual</span>
+            </button>
 
             <button
               onClick={() => setActiveTab('reports')}
@@ -299,63 +376,218 @@ export const DashboardView: React.FC = () => {
         </div>
       </div>
 
-      {/* Milestones Tracking M1 - M5 */}
-      {milestones.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between mb-3">
+      {/* ========================================================================= */}
+      {/* PAPAN MONITORING PROGRES PEKERJAAN TOPOGRAFI LOKASI BOR */}
+      {/* STATUS RESMI 10 SEPTEMBER 2026 (REKAPITULASI LAPORAN HARIAN) */}
+      {/* ========================================================================= */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div>
             <div className="flex items-center space-x-2">
-              <Diamond className="w-4 h-4 text-purple-600 fill-purple-200" />
-              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                Monitoring Milestones Kontrak (M1 s.d. M5)
-              </h3>
+              <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                <FileCheck className="w-5 h-5" />
+              </div>
+              <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
+                Progress Pekerjaan Topografi Lokasi Bor (Status Per 10 September 2026)
+              </h2>
             </div>
-            <button
-              onClick={() => setActiveTab('wbs')}
-              className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center"
-            >
-              <span>Detail WBS</span>
-              <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
-            </button>
+            <p className="text-xs text-slate-500 mt-1">
+              Rekapitulasi kemajuan pekerjaan survey topografi lokasi bor di Wilayah Kerja PT Pertamina EP Zona 4
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {milestones.map((m) => {
-              const isDone = m.progressActual >= 100;
-              return (
-                <div
-                  key={m.id}
-                  className={`p-3 rounded-xl border transition ${
-                    isDone
-                      ? 'bg-emerald-50/60 border-emerald-200'
-                      : m.status === 'DELAYED'
-                      ? 'bg-rose-50/60 border-rose-200'
-                      : 'bg-purple-50/40 border-purple-200'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-white text-purple-800 border border-purple-200">
-                      {m.wbsCode}
-                    </span>
-                    {isDone ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    ) : (
-                      <span className="text-[10px] font-mono font-bold text-purple-700">
-                        {m.progressActual}%
-                      </span>
-                    )}
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-900 mt-2 line-clamp-2 leading-tight">
-                    {m.workName}
-                  </h4>
-                  <div className="text-[10px] text-slate-500 mt-1 font-mono">
-                    Target: {m.finishPlan}
-                  </div>
-                </div>
-              );
-            })}
+          {/* Quick Filter Badges */}
+          <div className="flex items-center space-x-2 text-xs flex-wrap gap-y-1">
+            <button
+              onClick={() => setReportFilter('ALL')}
+              className={`px-3 py-1.5 rounded-xl font-bold transition ${
+                reportFilter === 'ALL'
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              Semua Lokasi ({totalReportsCount})
+            </button>
+            <button
+              onClick={() => setReportFilter('DONE')}
+              className={`px-3 py-1.5 rounded-xl font-bold transition ${
+                reportFilter === 'DONE'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+              }`}
+            >
+              Selesai 100% ({doneReportsCount})
+            </button>
+            <button
+              onClick={() => setReportFilter('ON_PROGRESS')}
+              className={`px-3 py-1.5 rounded-xl font-bold transition ${
+                reportFilter === 'ON_PROGRESS'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100'
+              }`}
+            >
+              Berjalan ({onProgressCount})
+            </button>
+            <button
+              onClick={() => setReportFilter('DELAYED')}
+              className={`px-3 py-1.5 rounded-xl font-bold transition ${
+                reportFilter === 'DELAYED'
+                  ? 'bg-rose-600 text-white'
+                  : 'bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100'
+              }`}
+            >
+              Deviasi Negatif ({delayedReportsCount})
+            </button>
           </div>
         </div>
-      )}
+
+        {/* Search Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Cari lokasi bor (BKB-AR13, ABB-A7, GNK, BNG...)"
+              value={reportSearch}
+              onChange={(e) => setReportSearch(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+            />
+          </div>
+
+          <div className="text-[11px] text-slate-500 font-medium">
+            Menampilkan <strong className="text-slate-800 font-mono">{filteredReports.length}</strong> dari{' '}
+            <strong className="text-slate-800 font-mono">{totalReportsCount}</strong> lokasi pemboran
+          </div>
+        </div>
+
+        {/* Table of Topography Locations Progress */}
+        <div className="overflow-x-auto border border-slate-200 rounded-xl">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold text-[11px]">
+                <th className="py-2.5 px-3">No & Lokasi Bor</th>
+                <th className="py-2.5 px-2">TMT / Periode</th>
+                <th className="py-2.5 px-2 text-center">Hari / Mg</th>
+                <th className="py-2.5 px-2 text-center">Cum. Plan</th>
+                <th className="py-2.5 px-2 text-center">Daily</th>
+                <th className="py-2.5 px-2 text-center">Cum. Realisasi</th>
+                <th className="py-2.5 px-2 text-center">Deviasi</th>
+                <th className="py-2.5 px-2 text-center">Status</th>
+                <th className="py-2.5 px-3">Aktivitas Hari Ini & Kendala</th>
+                <th className="py-2.5 px-2 text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-normal">
+              {filteredReports.map((item) => {
+                const isItemDelayed = item.deviation < 0;
+                return (
+                  <tr key={item.id} className="hover:bg-slate-50/80 transition group">
+                    {/* Location Name & Well */}
+                    <td className="py-2.5 px-3 font-semibold text-slate-900">
+                      <div className="flex items-center space-x-1.5">
+                        <span className="text-[10px] font-mono text-slate-400">#{item.orderNumber}</span>
+                        <strong className="text-slate-900 group-hover:text-blue-600 transition truncate max-w-[200px] sm:max-w-xs md:max-w-sm">
+                          {item.wellName}
+                        </strong>
+                      </div>
+                      <span className="text-[10px] text-slate-500 line-clamp-1">{item.title}</span>
+                    </td>
+
+                    {/* TMT Period */}
+                    <td className="py-2.5 px-2 text-[11px] text-slate-600 whitespace-nowrap">
+                      {item.tmtPeriod}
+                    </td>
+
+                    {/* Day / Week */}
+                    <td className="py-2.5 px-2 text-center font-mono text-[11px] whitespace-nowrap">
+                      H-{item.dayNumber} (W-{item.weekNumber})
+                    </td>
+
+                    {/* Cum Plan */}
+                    <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-700">
+                      {item.cumPlan.toFixed(1)}%
+                    </td>
+
+                    {/* Daily Progress */}
+                    <td className="py-2.5 px-2 text-center font-mono font-medium text-blue-700">
+                      {item.dailyProgress > 0 ? `+${item.dailyProgress}%` : '0%'}
+                    </td>
+
+                    {/* Cum Actual Progress */}
+                    <td className="py-2.5 px-2 text-center font-mono font-black text-slate-900">
+                      <span
+                        className={`px-1.5 py-0.5 rounded ${
+                          item.cumProgress >= 100
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : item.cumProgress >= 80
+                            ? 'bg-blue-50 text-blue-800'
+                            : 'bg-amber-50 text-amber-800'
+                        }`}
+                      >
+                        {item.cumProgress}%
+                      </span>
+                    </td>
+
+                    {/* Deviation */}
+                    <td className="py-2.5 px-2 text-center font-mono font-bold whitespace-nowrap">
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[11px] ${
+                          item.deviation === 0
+                            ? 'bg-slate-100 text-slate-700'
+                            : isItemDelayed
+                            ? 'bg-rose-50 text-rose-700'
+                            : 'bg-emerald-50 text-emerald-700'
+                        }`}
+                      >
+                        {item.deviation > 0 ? `+${item.deviation}` : item.deviation}%
+                      </span>
+                    </td>
+
+                    {/* Status Progress */}
+                    <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          item.cumProgress >= 100
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : isItemDelayed
+                            ? 'bg-rose-100 text-rose-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}
+                      >
+                        {item.cumProgress >= 100 ? 'Selesai 100%' : isItemDelayed ? 'Terlambat' : 'On Track'}
+                      </span>
+                    </td>
+
+                    {/* Planned Activity Today & Constraints */}
+                    <td className="py-2.5 px-3 max-w-[260px] md:max-w-md lg:max-w-lg xl:max-w-xl">
+                      <div className="text-slate-800 font-medium truncate" title={item.plannedActivityToday}>
+                        {item.plannedActivityToday}
+                      </div>
+                      {item.constraints && item.constraints !== '-' && (
+                        <div className="text-[10px] text-rose-600 truncate flex items-center mt-0.5" title={item.constraints}>
+                          <AlertTriangle className="w-3 h-3 mr-1 shrink-0" />
+                          {item.constraints}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Action: Switch & Monitor */}
+                    <td className="py-2.5 px-2 text-center">
+                      <button
+                        onClick={() => handleSelectReportLocation(item.wellName)}
+                        className="px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-semibold text-[10px] transition"
+                        title="Buka SPK & Monitoring WBS"
+                      >
+                        Buka
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* S-CURVE (KURVA-S) MAIN SECTION */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
@@ -366,7 +598,7 @@ export const DashboardView: React.FC = () => {
                 Kurva-S Progres Proyek: {project.code}
               </h2>
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                Minggu ke-7
+                Minggu ke-14
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -472,16 +704,114 @@ export const DashboardView: React.FC = () => {
         </div>
       </div>
 
-      {/* 2-Column: Subcontractor Performance & Recent Audit Logs */}
+      {/* 2-Column: Terrestrial Productivity Monitoring & Subcontractor Performance */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Subcontractor Performance */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between mb-4">
+        {/* MONITORING PRODUKTIVITAS SURVEI TERESTRIS (HA/TIM/HARI) */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <div className="flex items-center space-x-2">
+                <Gauge className="w-4 h-4 text-emerald-600" />
+                <h3 className="text-base font-bold text-slate-900">
+                  Monitoring Produktivitas Survei Terestris
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Pencapaian output fisik per tim lapangan (Standar KPI: 0.60 Ha/Tim/Hari)
+              </p>
+            </div>
+            <button
+              onClick={() => setActiveTab('progress_input')}
+              className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center"
+            >
+              <span>+ Input Baru</span>
+              <ChevronRight className="w-4 h-4 ml-0.5" />
+            </button>
+          </div>
+
+          {/* Quick Metrics */}
+          <div className="grid grid-cols-3 gap-3 text-xs">
+            <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100">
+              <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                Rata-rata Produktivitas
+              </span>
+              <div className="text-xl font-black font-mono text-emerald-700 mt-1">
+                {avgProductivity}{' '}
+                <span className="text-[10px] font-bold text-emerald-900">Ha/Tim/Hari</span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-100">
+              <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider">
+                Output Hari Ini
+              </span>
+              <div className="text-xl font-black font-mono text-blue-700 mt-1">
+                {totalHectaresToday.toFixed(1)}{' '}
+                <span className="text-[10px] font-bold text-blue-900">Hectare</span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+                Tim Bertugas
+              </span>
+              <div className="text-xl font-black font-mono text-slate-800 mt-1">
+                {totalActiveTeams}{' '}
+                <span className="text-[10px] font-bold text-slate-600">Tim Aktif</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Productivity Records List */}
+          <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
+            {terrestrialProductivityLogs.slice(0, 5).map((log) => (
+              <div
+                key={log.id}
+                className="p-3 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition text-xs space-y-1.5"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="font-extrabold text-slate-900">{log.wellName}</span>
+                    <span className="text-[10px] text-slate-500">({log.fieldArea})</span>
+                  </div>
+                  <span className="font-mono text-[10px] text-slate-400">{log.date}</span>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] pt-0.5">
+                  <span className="text-slate-600">
+                    Luas: <strong className="font-mono text-slate-800">{log.hectaresToday} Ha</strong> ({log.teamsCount} Tim)
+                  </span>
+                  <span
+                    className={`font-mono font-extrabold px-2 py-0.5 rounded text-[11px] ${
+                      log.productivityHaPerTeam >= 0.75
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : log.productivityHaPerTeam >= 0.45
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}
+                  >
+                    {log.productivityHaPerTeam} Ha/Tim/Hari
+                  </span>
+                </div>
+
+                {log.teamMembers && (
+                  <div className="text-[10px] text-slate-500 truncate">
+                    Personil: {log.teamMembers}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Subcontractor Performance & Audit Logs */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-base font-bold text-slate-900">
                 Monitoring Progres Sub-Kontraktor
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Tingkat pencapaian vendor terhadap paket WBS SPK aktif
               </p>
             </div>
@@ -548,58 +878,31 @@ export const DashboardView: React.FC = () => {
               );
             })}
           </div>
-        </div>
 
-        {/* Audit Log / Histori Progres Terbaru */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900">
-                Histori Snapshot & Log Lapangan
-              </h3>
-              <p className="text-xs text-slate-500">
-                Audit trail pembaruan realisasi (Spec 5.3 & 8)
-              </p>
-            </div>
-            <button
-              onClick={() => setActiveTab('wbs')}
-              className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center"
-            >
-              <span>Lihat WBS</span>
-              <ChevronRight className="w-4 h-4 ml-0.5" />
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {progressLogs.slice(0, 4).map((log) => (
-              <div
-                key={log.id}
-                className="p-3 rounded-xl border border-slate-100 bg-white hover:bg-slate-50/70 transition space-y-1"
+          {/* Audit trail preview */}
+          <div className="pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-slate-700">Histori Snapshot Lapangan Terbaru:</span>
+              <button
+                onClick={() => setActiveTab('progress_input')}
+                className="text-[11px] text-blue-600 hover:underline font-semibold"
               >
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-900 flex items-center">
-                    <span className="font-mono text-blue-600 mr-1.5">{log.wbsCode}</span>
-                    <span className="truncate max-w-[200px]">{log.workName}</span>
-                  </span>
-                  <span className="text-[11px] text-slate-400 font-mono">
-                    {log.snapshotDate}
-                  </span>
+                Lihat Semua
+              </button>
+            </div>
+            <div className="space-y-2">
+              {progressLogs.slice(0, 2).map((log) => (
+                <div key={log.id} className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-xs">
+                  <div className="flex items-center justify-between font-semibold">
+                    <span className="text-slate-800">
+                      [{log.wbsCode}] {log.workName}
+                    </span>
+                    <span className="font-mono text-emerald-600 font-bold">{log.progressActual}%</span>
+                  </div>
+                  <p className="text-slate-500 text-[11px] italic truncate mt-0.5">"{log.notes}"</p>
                 </div>
-
-                <p className="text-xs text-slate-600 line-clamp-2">
-                  "{log.notes}"
-                </p>
-
-                <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500">
-                  <span>
-                    Oleh: <strong className="text-slate-700">{log.userName}</strong> ({log.userRole})
-                  </span>
-                  <span className="font-mono font-semibold text-emerald-600">
-                    Progres: {log.progressActual}%
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>

@@ -108,6 +108,75 @@ export interface ProgressLog {
   notes: string;
   attachments?: string[];
   createdAt: string;
+  // Field productivity enhancements for Terrestrial Survey / Pengukuran Detil
+  isTerrestrialSurvey?: boolean;
+  hectaresMeasuredToday?: number;
+  teamCount?: number;
+  teamDescription?: string;
+  productivityHaPerTeam?: number;
+  totalAreaHaTarget?: number;
+  cumHectaresMeasured?: number;
+  equipmentUsed?: string;
+  manpowerDescription?: string;
+  workingHours?: number;
+  safeWorkingHours?: number;
+  stageName?: string;
+}
+
+export interface TopographyStageProgress {
+  preliminarySurvey: number | null; // Survey pendahuluan
+  bmInstallation: number | null; // Pembuatan dan pemasangan BM
+  terrestrialSurvey: number | null; // Survey terestris
+  dataProcessing: number | null; // Pengolahan data
+  siteplanDesign: number | null; // Desain siteplan
+  landInventory: number | null; // Inventaris lahan
+  stakeOut: number | null; // Stake Out
+  finalDesign: number | null; // Finalisasi Desain
+  jointInspection: number | null; // Pemeriksaan dan koreksi Bersama
+  finalReport: number | null; // Laporan Akhir
+}
+
+export interface TopographyDailyReportItem {
+  id: string;
+  orderNumber: number;
+  title: string;
+  wellName: string;
+  projectId?: string;
+  tmtPeriod: string;
+  dayNumber: string;
+  weekNumber: number;
+  cumPlan: number;
+  dailyProgress: number;
+  cumProgress: number;
+  deviation: number;
+  plannedActivityToday: string;
+  equipment: string;
+  manpower: string;
+  workingHours: string;
+  safeHours: string;
+  stages: TopographyStageProgress;
+  constraints: string;
+  // Productivity fields for Terrestrial Monitoring
+  totalAreaHa?: number;
+  measuredHaToday?: number;
+  teamsCount?: number;
+  productivityHaPerTeam?: number;
+}
+
+export interface TerrestrialProductivityRecord {
+  id: string;
+  date: string;
+  wellName: string;
+  projectName: string;
+  fieldArea: string;
+  hectaresToday: number;
+  teamsCount: number;
+  teamMembers?: string;
+  productivityHaPerTeam: number;
+  equipment: string;
+  weatherCondition?: string;
+  status: 'EXCELLENT' | 'NORMAL' | 'LOW';
+  notes?: string;
 }
 
 export type TimesheetStatus = 'PENDING' | 'APPROVED' | 'REJECTED';

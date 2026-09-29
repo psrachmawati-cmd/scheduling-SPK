@@ -152,7 +152,10 @@ export function reindexWbsCodes(nodes: WbsNode[]): WbsNode[] {
       child.level = level;
       child.order = index + 1;
       result.push(child);
-      traverse(child.id, currentCode, level + 1);
+      // Strictly restrict WBS hierarchy to Order 2 (level 0 root, level 1 sub-package)
+      if (level < 1) {
+        traverse(child.id, currentCode, level + 1);
+      }
     });
   }
 

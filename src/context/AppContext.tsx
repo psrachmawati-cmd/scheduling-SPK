@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import {
   User,
   Project,
@@ -23,11 +23,16 @@ import {
   INITIAL_MESSAGES,
 } from '../data/mockInitialData';
 import {
+  TOPOGRAPHY_DAILY_REPORTS_SEPT10,
+  INITIAL_TERRESTRIAL_PRODUCTIVITY_LOGS,
+} from '../data/topographyDailyReportData';
+import {
   calculateRollup,
   reindexWbsCodes,
   generateSCurveData,
 } from '../utils/wbsLogic';
 import { generateStandardWbsForProject } from '../data/standardWbsTemplate';
+import { TopographyDailyReportItem, TerrestrialProductivityRecord } from '../types';
 
 export interface TimerState {
   isRunning: boolean;
@@ -73,8 +78,16 @@ interface AppContextType {
   scurveData: SCurveDataPoint[];
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  // Topography Daily Reports & Productivity
+  topographyDailyReports: TopographyDailyReportItem[];
+  terrestrialProductivityLogs: TerrestrialProductivityRecord[];
+  addTerrestrialProductivity: (record: Omit<TerrestrialProductivityRecord, 'id'>) => void;
   // Role & User Switching
+  isAuthenticated: boolean;
+  setIsAuthenticated: (val: boolean) => void;
   switchUser: (userId: string) => void;
+  loginAsUser: (userId: string) => void;
+  logout: () => void;
   loginWithCredentials: (username: string, password: string) => { success: boolean; message?: string };
   // WBS Actions
   addWbsNode: (nodeData: {
@@ -100,6 +113,18 @@ interface AppContextType {
     progressActual: number;
     volumeSubmitted?: number;
     notes: string;
+    isTerrestrialSurvey?: boolean;
+    hectaresMeasuredToday?: number;
+    teamCount?: number;
+    teamDescription?: string;
+    productivityHaPerTeam?: number;
+    totalAreaHaTarget?: number;
+    cumHectaresMeasured?: number;
+    equipmentUsed?: string;
+    manpowerDescription?: string;
+    workingHours?: number;
+    safeWorkingHours?: number;
+    stageName?: string;
   }) => void;
   // Timesheet
   addTimesheet: (params: {
@@ -129,11 +154,14 @@ interface AppContextType {
   // Notification Toast
   toastMessage: string | null;
   setToast: (msg: string | null) => void;
+  // Scoped Project Access
+  accessibleProjects: Project[];
+  isUserAllowedProject: (projectId: string) => boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const STORAGE_VERSION = 'v6_26_spk_kjsb_subkhi_syahrial_database';
+const STORAGE_VERSION = 'v9_individual_user_login';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Check version and clear old stale building data if needed
@@ -148,6 +176,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.removeItem('optiwbs_tasks');
       localStorage.removeItem('optiwbs_messages');
       localStorage.removeItem('optiwbs_user');
+      localStorage.removeItem('optiwbs_is_authenticated');
       localStorage.setItem('optiwbs_version', STORAGE_VERSION);
     } catch {
       // ignore
@@ -168,6 +197,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
     return INITIAL_USERS[0]; // Super Admin default
+  });
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    const saved = localStorage.getItem('optiwbs_is_authenticated');
+    return saved === 'true';
   });
 
   const [users] = useState<User[]>(INITIAL_USERS);
@@ -203,7 +237,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return calculateRollup(parsed);
+        if (Array.isArray(parsed)) {
+          // Strictly enforce Order 2 maximum: allow Level 0, Level 1 (e.g. 1.1, 2.4, 3.3) and Milestones
+          const order2Only = parsed.filter(
+            (n: WbsNode) => n.isMilestone || !n.wbsCode || n.wbsCode.split('.').length <= 2
+          );
+          if (order2Only.length > 0) {
+            return calculateRollup(order2Only);
+          }
+        }
       } catch {
         return calculateRollup(INITIAL_WBS_NODES);
       }
@@ -214,6 +256,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Current active project WBS
   const wbsNodes = allWbsNodes.filter((n) => n.projectId === activeProjectId);
 
+  // Filtered accessible projects for the logged-in actor
+  const accessibleProjects = useMemo(() => {
+    if (
+      currentUser.role === 'SUPER_ADMIN' ||
+      currentUser.actorType === 'KOORDINATOR_SURVEY' ||
+      currentUser.actorType === 'KOORDINATOR_ADMINISTRASI' ||
+      !currentUser.subcontractorId
+    ) {
+      return projects;
+    }
+    return projects.filter(
+      (p: Project) =>
+        (currentUser.projectAccess && currentUser.projectAccess.includes(p.id)) ||
+        (currentUser.subcontractorName && p.subcontractor === currentUser.subcontractorName)
+    );
+  }, [projects, currentUser]);
+
+  const isUserAllowedProject = (projectId: string): boolean => {
+    if (
+      currentUser.role === 'SUPER_ADMIN' ||
+      currentUser.actorType === 'KOORDINATOR_SURVEY' ||
+      currentUser.actorType === 'KOORDINATOR_ADMINISTRASI' ||
+      !currentUser.subcontractorId
+    ) {
+      return true;
+    }
+    return accessibleProjects.some((p: Project) => p.id === projectId);
+  };
+
   const [progressLogs, setProgressLogs] = useState<ProgressLog[]>(() => {
     const saved = localStorage.getItem('optiwbs_logs');
     if (saved) {
@@ -221,6 +292,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     return INITIAL_PROGRESS_LOGS;
   });
+
+  const [topographyDailyReports] = useState<TopographyDailyReportItem[]>(TOPOGRAPHY_DAILY_REPORTS_SEPT10);
+
+  const [terrestrialProductivityLogs, setTerrestrialProductivityLogs] = useState<TerrestrialProductivityRecord[]>(() => {
+    const saved = localStorage.getItem('optiwbs_terrestrial_productivity');
+    if (saved) {
+      try { return JSON.parse(saved); } catch { return INITIAL_TERRESTRIAL_PRODUCTIVITY_LOGS; }
+    }
+    return INITIAL_TERRESTRIAL_PRODUCTIVITY_LOGS;
+  });
+
+  const addTerrestrialProductivity = (record: Omit<TerrestrialProductivityRecord, 'id'>) => {
+    const newRecord: TerrestrialProductivityRecord = {
+      ...record,
+      id: `prod-${Date.now()}`,
+    };
+    setTerrestrialProductivityLogs((prev) => [newRecord, ...prev]);
+    try {
+      localStorage.setItem('optiwbs_terrestrial_productivity', JSON.stringify([newRecord, ...terrestrialProductivityLogs]));
+    } catch {
+      // ignore
+    }
+  };
 
   const [timesheets, setTimesheets] = useState<TimesheetEntry[]>(() => {
     const saved = localStorage.getItem('optiwbs_timesheets');
@@ -316,16 +410,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const found = users.find((u) => u.id === userId);
     if (found) {
       setCurrentUser(found);
+      setIsAuthenticated(true);
       try {
         localStorage.setItem('optiwbs_user', JSON.stringify(found));
+        localStorage.setItem('optiwbs_is_authenticated', 'true');
       } catch {
         // ignore
       }
+
+      // Check if current active SPK is allowed for this subcontractor actor
+      if (
+        found.subcontractorId &&
+        found.projectAccess &&
+        found.projectAccess.length > 0 &&
+        !found.projectAccess.includes(activeProjectId)
+      ) {
+        const nextProjectId = found.projectAccess[0];
+        setActiveProjectId(nextProjectId);
+        try {
+          localStorage.setItem('optiwbs_active_project_id', nextProjectId);
+        } catch {
+          // ignore
+        }
+      }
+
       showToast(`Beralih ke akun: ${found.actorLabel || found.name} (${found.roleTitle})`);
       if (found.actorType === 'SURVEYOR' || found.actorType === 'DRAFTER') {
         setActiveTab('timesheet');
       } else if (found.actorType === 'KOORDINATOR_SUBKONTRAKTOR') {
-        setActiveTab('progress_input');
+        setActiveTab('portfolio');
       } else if (found.actorType === 'KOORDINATOR_SURVEY') {
         setActiveTab('wbs');
       } else if (found.actorType === 'KOORDINATOR_ADMINISTRASI') {
@@ -335,11 +448,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } else if (found.actorType === 'SUPER_ADMIN') {
         setActiveTab('portfolio');
       } else if (found.role === 'SUBCONTRACTOR') {
-        setActiveTab('progress_input');
+        setActiveTab('portfolio');
       } else if (found.role === 'STAFF') {
         setActiveTab('timesheet');
       }
     }
+  };
+
+  // Direct login as user (1-Click Login)
+  const loginAsUser = (userId: string) => {
+    switchUser(userId);
+    showToast(`Login berhasil sebagai ${users.find((u) => u.id === userId)?.name || 'Pengguna'}`);
+  };
+
+  // Logout from session
+  const logout = () => {
+    setIsAuthenticated(false);
+    try {
+      localStorage.setItem('optiwbs_is_authenticated', 'false');
+    } catch {
+      // ignore
+    }
+    showToast('Anda telah keluar dari sesi sistem.');
   };
 
   // Login with Username & Password credentials
@@ -361,19 +491,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       admin: 'usr-admin',
       superadmin: 'usr-admin',
       'super admin': 'usr-admin',
+      'pjs.manager': 'usr-admin',
+      manager: 'usr-admin',
       yogi: 'usr-koord-survey',
       'yogi armansyah': 'usr-koord-survey',
       'koordinator.survey': 'usr-koord-survey',
       'koordinator survey': 'usr-koord-survey',
-      ivan: 'usr-koord-subkon',
-      'koordinator.subkon': 'usr-koord-subkon',
-      'koordinator subkontraktor': 'usr-koord-subkon',
-      ian: 'usr-surveyor',
-      surveyor: 'usr-surveyor',
       yuswa: 'usr-koord-admin',
       'yuswa affandi': 'usr-koord-admin',
       'koordinator.admin': 'usr-koord-admin',
       'koordinator administrasi': 'usr-koord-admin',
+      ivan: 'usr-koord-subkon',
+      'koordinator.subkon': 'usr-koord-subkon',
+      'koordinator subkontraktor': 'usr-koord-subkon',
+      'koordinator subkhi': 'usr-koord-subkon',
+      subkhi: 'usr-koord-subkon',
+      'kjsb subkhi': 'usr-koord-subkon',
+      ian: 'usr-surveyor',
+      surveyor: 'usr-surveyor',
+      juli: 'usr-koord-subkon-juli',
+      'koordinator.syahrial': 'usr-koord-subkon-juli',
+      'koordinator syahrial': 'usr-koord-subkon-juli',
+      syahrial: 'usr-koord-subkon-juli',
+      'kjsb syahrial': 'usr-koord-subkon-juli',
       hari: 'usr-koord-drafter',
       'hari susmoyo': 'usr-koord-drafter',
       'koordinator.drafter': 'usr-koord-drafter',
@@ -383,10 +523,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       bayu: 'usr-drafter-2',
       'drafter.bayu': 'usr-drafter-2',
       drafter: 'usr-drafter-1',
-      subkhi: 'usr-koord-subkon',
-      'kjsb subkhi': 'usr-koord-subkon',
-      syahrial: 'usr-koord-drafter',
-      'kjsb syahrial': 'usr-koord-drafter',
     };
 
     const targetUserId = userAliasMap[cleanUsername];
@@ -414,10 +550,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     setCurrentUser(found);
+    setIsAuthenticated(true);
     try {
       localStorage.setItem('optiwbs_user', JSON.stringify(found));
+      localStorage.setItem('optiwbs_is_authenticated', 'true');
     } catch {
       // ignore
+    }
+
+    // Auto-adjust active project if user belongs to subcontractor
+    if (
+      found.subcontractorId &&
+      found.projectAccess &&
+      found.projectAccess.length > 0 &&
+      !found.projectAccess.includes(activeProjectId)
+    ) {
+      const nextProjectId = found.projectAccess[0];
+      setActiveProjectId(nextProjectId);
+      try {
+        localStorage.setItem('optiwbs_active_project_id', nextProjectId);
+      } catch {
+        // ignore
+      }
     }
 
     showToast(`Login berhasil! Selamat datang, ${found.name} (${found.actorLabel || found.roleTitle})`);
@@ -426,7 +580,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (found.actorType === 'SURVEYOR' || found.actorType === 'DRAFTER') {
       setActiveTab('timesheet');
     } else if (found.actorType === 'KOORDINATOR_SUBKONTRAKTOR') {
-      setActiveTab('progress_input');
+      setActiveTab('portfolio');
     } else if (found.actorType === 'KOORDINATOR_SURVEY') {
       setActiveTab('wbs');
     } else if (found.actorType === 'KOORDINATOR_ADMINISTRASI') {
@@ -445,7 +599,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const target = projects.find((p) => p.id === projectId);
     if (target) {
       setActiveProjectId(projectId);
-      showToast(`Beralih ke ${target.code} — ${target.name}`);
+      try {
+        localStorage.setItem('optiwbs_active_project_id', projectId);
+      } catch {
+        // ignore
+      }
+      if (
+        currentUser.subcontractorId &&
+        currentUser.projectAccess &&
+        !currentUser.projectAccess.includes(projectId)
+      ) {
+        showToast(`Akses Terbatas: ${target.code} dikerjakan oleh rekanan lain (${target.subcontractor}).`);
+      } else {
+        showToast(`Beralih ke ${target.code} — ${target.name}`);
+      }
     }
   };
 
@@ -564,7 +731,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newAll = [...otherNodes, ...rolledUp];
     setAllWbsNodes(newAll);
     recalculateProjectOverall(projectId, newAll);
-    showToast(`Struktur WBS standar Pertamina EP (53 item) berhasil diterapkan pada ${target.code}.`);
+    showToast(`Struktur WBS standar Pertamina EP Orde 2 (1.1 s/d 4.4) berhasil diterapkan pada ${target.code}.`);
   };
 
   // Update Project stats whenever WBS rolls up
@@ -608,6 +775,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     volumePlan?: number;
     volumeUnit?: string;
   }) => {
+    // Enforce Order 2 maximum
+    if (nodeData.parentId) {
+      const parentNode = allWbsNodes.find((n) => n.id === nodeData.parentId);
+      if (parentNode && parentNode.level >= 1) {
+        showToast('WBS dibatasi hingga Orde 2 (1.1, 2.4, 3.3, dst). Tidak dapat menambah sub-task di bawah Orde 2.');
+        return;
+      }
+    }
+
     const start = new Date(nodeData.startPlan);
     const finish = new Date(nodeData.finishPlan);
     const diffDays = Math.max(1, Math.round((finish.getTime() - start.getTime()) / (1000 * 3600 * 24)));
@@ -787,15 +963,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     progressActual,
     volumeSubmitted,
     notes,
+    isTerrestrialSurvey,
+    hectaresMeasuredToday,
+    teamCount,
+    teamDescription,
+    productivityHaPerTeam,
+    totalAreaHaTarget,
+    cumHectaresMeasured,
+    equipmentUsed,
+    manpowerDescription,
+    workingHours,
+    safeWorkingHours,
+    stageName,
   }: {
     wbsId: string;
     progressActual: number;
     volumeSubmitted?: number;
     notes: string;
+    isTerrestrialSurvey?: boolean;
+    hectaresMeasuredToday?: number;
+    teamCount?: number;
+    teamDescription?: string;
+    productivityHaPerTeam?: number;
+    totalAreaHaTarget?: number;
+    cumHectaresMeasured?: number;
+    equipmentUsed?: string;
+    manpowerDescription?: string;
+    workingHours?: number;
+    safeWorkingHours?: number;
+    stageName?: string;
   }) => {
     const targetNode = allWbsNodes.find((n) => n.id === wbsId);
     if (!targetNode) return;
     const targetProjId = targetNode.projectId;
+    const targetProj = projects.find((p) => p.id === targetProjId);
 
     // 1. Create snapshot log
     const newLog: ProgressLog = {
@@ -813,8 +1014,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       volumeSubmitted,
       notes,
       createdAt: new Date().toISOString(),
+      isTerrestrialSurvey,
+      hectaresMeasuredToday,
+      teamCount,
+      teamDescription,
+      productivityHaPerTeam,
+      totalAreaHaTarget,
+      cumHectaresMeasured,
+      equipmentUsed,
+      manpowerDescription,
+      workingHours,
+      safeWorkingHours,
+      stageName,
     };
     setProgressLogs((prev) => [newLog, ...prev]);
+
+    // 1b. If terrestrial survey with hectares measured, record in productivity logs
+    if (isTerrestrialSurvey && hectaresMeasuredToday && hectaresMeasuredToday > 0) {
+      const calcProd = teamCount && teamCount > 0 ? Number((hectaresMeasuredToday / teamCount).toFixed(2)) : hectaresMeasuredToday;
+      const status: 'EXCELLENT' | 'NORMAL' | 'LOW' =
+        calcProd >= 0.75 ? 'EXCELLENT' : calcProd >= 0.45 ? 'NORMAL' : 'LOW';
+
+      addTerrestrialProductivity({
+        date: new Date().toISOString().split('T')[0],
+        wellName: targetProj?.wellName || targetNode.workName,
+        projectName: targetProj?.name || targetNode.workName,
+        fieldArea: targetProj?.fieldArea || 'Prabumulih Field',
+        hectaresToday: hectaresMeasuredToday,
+        teamsCount: teamCount || 1,
+        teamMembers: teamDescription || `${currentUser.name} (${currentUser.role})`,
+        productivityHaPerTeam: productivityHaPerTeam || calcProd,
+        equipment: equipmentUsed || 'Total Station & GPS Geodetik',
+        weatherCondition: 'Operasional Normal Lapangan',
+        status,
+        notes,
+      });
+    }
 
     // 2. Update node actual progress & volume
     const currentProjectNodes = allWbsNodes.filter((n) => n.projectId === targetProjId);
@@ -1077,7 +1312,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         scurveData,
         activeTab,
         setActiveTab,
+        topographyDailyReports,
+        terrestrialProductivityLogs,
+        addTerrestrialProductivity,
+        isAuthenticated,
+        setIsAuthenticated,
         switchUser,
+        loginAsUser,
+        logout,
         loginWithCredentials,
         addWbsNode,
         updateWbsNode,
@@ -1101,6 +1343,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         discardTimer,
         toastMessage,
         setToast: setToastMessage,
+        accessibleProjects,
+        isUserAllowedProject,
       }}
     >
       {children}

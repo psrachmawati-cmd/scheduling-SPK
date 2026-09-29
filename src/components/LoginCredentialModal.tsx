@@ -93,15 +93,15 @@ export const LoginCredentialModal: React.FC<LoginCredentialModalProps> = ({
   };
 
   // Helper metadata icon & color for each actor
-  const getActorConfig = (actorType?: ActorType) => {
-    switch (actorType) {
+  const getActorConfig = (u: User) => {
+    switch (u.actorType) {
       case 'SUPER_ADMIN':
         return {
           icon: ShieldCheck,
           badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
           cardBorder: 'hover:border-purple-300',
           accent: 'purple',
-          scopeSummary: 'Akses penuh kontrol sistem, multi-SPK, kelola baseline WBS, approval akhir, dan konfigurasi master.',
+          scopeSummary: 'Akses penuh kontrol sistem, multi-SPK (26 paket), kelola baseline WBS, approval akhir penagihan, dan manajemen hak akses master.',
         };
       case 'KOORDINATOR_SURVEY':
         return {
@@ -109,15 +109,24 @@ export const LoginCredentialModal: React.FC<LoginCredentialModalProps> = ({
           badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
           cardBorder: 'hover:border-blue-300',
           accent: 'blue',
-          scopeSummary: 'Supervisi teknis lapangan, perumusan jadwal & tanggal WBS, approval timesheet surveyor, kontrol kendala migas.',
+          scopeSummary: 'Supervisi teknis lapangan semua 26 SPK Zona 4, perumusan jadwal & tanggal WBS, approval timesheet surveyor, kontrol kendala migas.',
         };
       case 'KOORDINATOR_SUBKONTRAKTOR':
+        if (u.subcontractorId === 'sub-01') {
+          return {
+            icon: FileCheck2,
+            badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+            cardBorder: 'hover:border-emerald-300',
+            accent: 'emerald',
+            scopeSummary: 'Koordinator pelaksana KJSB SUBKHI ABDUL HAKIM AT-TIGHOLY & REKAN. Bertanggung jawab atas 15 Paket SPK, input progres mingguan & volume fisik, review timesheet tim ukur, koordinasi operasional.',
+          };
+        }
         return {
           icon: FileCheck2,
-          badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-          cardBorder: 'hover:border-emerald-300',
-          accent: 'emerald',
-          scopeSummary: 'Koordinator pelaksana KJSB Subkhi Abdul Hakim & KJSB Syahrial, input progres mingguan & volume, pengajuan timesheet tim, koordinasi paket SPK.',
+          badgeColor: 'bg-teal-100 text-teal-800 border-teal-200',
+          cardBorder: 'hover:border-teal-300',
+          accent: 'teal',
+          scopeSummary: 'Koordinator pelaksana KJSB SYAHRIAL & REKAN. Bertanggung jawab atas 11 Paket SPK, input progres mingguan studio CAD & drone LiDAR, review tim drafting CAD/GIS, koordinasi paket SPK.',
         };
       case 'SURVEYOR':
         return {
@@ -125,7 +134,7 @@ export const LoginCredentialModal: React.FC<LoginCredentialModalProps> = ({
           badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
           cardBorder: 'hover:border-amber-300',
           accent: 'amber',
-          scopeSummary: 'Pengukuran terestris, pengamatan GPS BM, drone LiDAR, input absensi harian / timesheet, catat kendala cuaca.',
+          scopeSummary: 'Tim Lapangan KJSB Subkhi Abdul Hakim. Pengukuran topografi terestris, pengamatan GPS geodetik BM, input absensi harian / timesheet, catat kendala cuaca.',
         };
       case 'KOORDINATOR_ADMINISTRASI':
         return {
@@ -133,7 +142,7 @@ export const LoginCredentialModal: React.FC<LoginCredentialModalProps> = ({
           badgeColor: 'bg-rose-100 text-rose-800 border-rose-200',
           cardBorder: 'hover:border-rose-300',
           accent: 'rose',
-          scopeSummary: 'Penyusunan berkas penagihan SPK, Call of Order (COO), monitoring BASTP & invoice, arsip laporan resmi.',
+          scopeSummary: 'Administrasi kontrak Zona 4. Penyusunan berkas penagihan 26 SPK, verifikasi Call of Order (COO), monitoring BASTP & invoice, arsip laporan resmi.',
         };
       case 'KOORDINATOR_DRAFTER':
         return {
@@ -141,15 +150,15 @@ export const LoginCredentialModal: React.FC<LoginCredentialModalProps> = ({
           badgeColor: 'bg-cyan-100 text-cyan-800 border-cyan-200',
           cardBorder: 'hover:border-cyan-300',
           accent: 'cyan',
-          scopeSummary: 'Supervisi studio drafting, validasi peta kontur & siteplan migas, distribusi tugas CAD/GIS, review standar Pertamina.',
+          scopeSummary: 'Studio Drafting KJSB Syahrial. Supervisi drafting, validasi peta kontur & siteplan migas, distribusi tugas CAD/GIS, QC standar teknis Pertamina.',
         };
       case 'DRAFTER':
         return {
           icon: PencilRuler,
-          badgeColor: 'bg-teal-100 text-teal-800 border-teal-200',
-          cardBorder: 'hover:border-teal-300',
-          accent: 'teal',
-          scopeSummary: 'Pengolahan raw data ukur ke AutoCAD/Civil3D & GIS, pembuatan layout tapak bor, input jam kerja timesheet.',
+          badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+          cardBorder: 'hover:border-indigo-300',
+          accent: 'indigo',
+          scopeSummary: 'Tim Studio KJSB Syahrial. Pengolahan raw data ukur ke AutoCAD/Civil3D & GIS, pembuatan layout tapak bor, input jam kerja timesheet.',
         };
       default:
         return {
@@ -157,7 +166,7 @@ export const LoginCredentialModal: React.FC<LoginCredentialModalProps> = ({
           badgeColor: 'bg-slate-100 text-slate-800 border-slate-200',
           cardBorder: 'hover:border-slate-300',
           accent: 'slate',
-          scopeSummary: 'Pengguna umum sistem pemantauan proyek.',
+          scopeSummary: 'Pengguna sistem pemantauan proyek.',
         };
     }
   };
@@ -177,11 +186,11 @@ export const LoginCredentialModal: React.FC<LoginCredentialModalProps> = ({
                   Akses Akun Dummy & Kredensial Pengguna
                 </h3>
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-400 text-slate-900">
-                  7 Aktor Lengkap
+                  9 Akun Lengkap (3 Entitas)
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-0.5">
-                Simulasi akun dengan username & password untuk setiap peran teknis proyek survey migas Zona 4
+                Struktur organisasi proyek: PT Pertamina EP Zona 4, KJSB Subkhi (Koordinator: Ivan), dan KJSB Syahrial (Koordinator: Juli)
               </p>
             </div>
           </div>
@@ -234,160 +243,497 @@ export const LoginCredentialModal: React.FC<LoginCredentialModalProps> = ({
 
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/40">
-          {/* TAB 1: LIST OF 7 ACCOUNTS */}
+          {/* TAB 1: LIST OF ACCOUNTS GROUPED BY ENTITY */}
           {activeTab === 'list' && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-start space-x-2.5">
                 <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold">Petunjuk Penggunaan:</span> Anda dapat langsung mengklik tombol{' '}
-                  <strong className="font-bold">"Login Sekarang"</strong> pada baris aktor untuk langsung beralih akun,
-                  atau salin username & password untuk menguji form login manual.
+                  <span className="font-semibold">Struktur Organisasi Proyek:</span> Sesuai instruksi resmi, hanya terdapat 2 Subkontraktor: <strong className="font-bold">KJSB SUBKHI ABDUL HAKIM AT-TIGHOLY & REKAN</strong> (Koordinator: Ivan) dan <strong className="font-bold">KJSB SYAHRIAL & REKAN</strong> (Koordinator: Juli). PT Sucofindo sebagai Pengelola Kontrak Utama (Bukan Kontraktor).
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                {users.map((u) => {
-                  const cfg = getActorConfig(u.actorType);
-                  const Icon = cfg.icon;
-                  const isCurrent = currentUser.id === u.id;
-                  const isRevealed = !!revealedPasswords[u.id];
+              {/* Entity 1: PT Pertamina EP Zona 4 */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-1.5 border-b border-purple-200">
+                  <div className="flex items-center space-x-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
+                    <h4 className="text-xs font-bold text-purple-950 uppercase tracking-wider">
+                      PT Pertamina Hulu Rokan Zona 4 (Pihak I • Pemilik Proyek & Pengawas)
+                    </h4>
+                  </div>
+                  <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 font-mono">
+                    Akses Seluruh 26 SPK
+                  </span>
+                </div>
 
-                  return (
-                    <div
-                      key={u.id}
-                      className={`p-4 rounded-xl border transition-all bg-white relative flex flex-col justify-between ${
-                        isCurrent
-                          ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-sm'
-                          : `border-slate-200 ${cfg.cardBorder} hover:shadow-xs`
-                      }`}
-                    >
-                      <div>
-                        {/* Header: Avatar, Name, Actor badge */}
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center space-x-3 min-w-0">
-                            <img
-                              src={u.avatar}
-                              alt={u.name}
-                              className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 shrink-0"
-                            />
-                            <div className="min-w-0">
-                              <div className="flex items-center space-x-1.5 flex-wrap">
-                                <span
-                                  className={`text-[10px] font-bold px-2 py-0.5 rounded border inline-flex items-center space-x-1 ${cfg.badgeColor}`}
-                                >
-                                  <Icon className="w-3 h-3 mr-1" />
-                                  <span>{u.actorLabel || u.role}</span>
-                                </span>
-                                {isCurrent && (
-                                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-600 text-white">
-                                    Aktif Saat Ini
-                                  </span>
-                                )}
-                              </div>
-                              <h4 className="text-xs font-bold text-slate-900 mt-1 truncate" title={u.name}>
-                                {u.name}
-                              </h4>
-                              <p className="text-[11px] text-slate-500 truncate" title={u.roleTitle}>
-                                {u.roleTitle}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {users
+                    .filter((u) => !u.subcontractorId)
+                    .map((u) => {
+                      const cfg = getActorConfig(u);
+                      const Icon = cfg.icon;
+                      const isCurrent = currentUser.id === u.id;
+                      const isRevealed = !!revealedPasswords[u.id];
 
-                        {/* Credential Box (Username & Password) */}
-                        <div className="mt-3.5 p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 space-y-2">
-                          {/* Username */}
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-[11px] font-medium text-slate-500">Username:</span>
-                            <div className="flex items-center space-x-1.5">
-                              <code className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
-                                {u.username}
-                              </code>
-                              <button
-                                type="button"
-                                onClick={() => handleCopy(u.username, `u-${u.id}`)}
-                                title="Salin Username"
-                                className="p-1 rounded text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
-                              >
-                                {copiedKey === `u-${u.id}` ? (
-                                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                ) : (
-                                  <Copy className="w-3.5 h-3.5" />
-                                )}
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Password */}
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-[11px] font-medium text-slate-500">Password:</span>
-                            <div className="flex items-center space-x-1.5">
-                              <code className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
-                                {isRevealed ? u.password : '••••••••'}
-                              </code>
-                              <button
-                                type="button"
-                                onClick={() => togglePasswordReveal(u.id)}
-                                title={isRevealed ? 'Sembunyikan Password' : 'Lihat Password'}
-                                className="p-1 rounded text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
-                              >
-                                {isRevealed ? (
-                                  <EyeOff className="w-3.5 h-3.5 text-slate-600" />
-                                ) : (
-                                  <Eye className="w-3.5 h-3.5" />
-                                )}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleCopy(u.password || '', `p-${u.id}`)}
-                                title="Salin Password"
-                                className="p-1 rounded text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
-                              >
-                                {copiedKey === `p-${u.id}` ? (
-                                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                ) : (
-                                  <Copy className="w-3.5 h-3.5" />
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Brief scope description */}
-                        <div className="mt-2.5 text-[11px] text-slate-500 leading-relaxed">
-                          <span className="font-medium text-slate-700">Cakupan Kerja: </span>
-                          {cfg.scopeSummary}
-                        </div>
-                      </div>
-
-                      {/* Footer Actions */}
-                      <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleQuickFill(u)}
-                          className="text-[11px] font-semibold text-slate-600 hover:text-blue-600 transition"
-                        >
-                          Isi ke Form
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleDirectLogin(u)}
-                          disabled={isCurrent}
-                          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                      return (
+                        <div
+                          key={u.id}
+                          className={`p-4 rounded-xl border transition-all bg-white relative flex flex-col justify-between ${
                             isCurrent
-                              ? 'bg-slate-100 text-slate-400 cursor-default'
-                              : 'bg-blue-600 hover:bg-blue-700 text-white shadow-2xs'
+                              ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-sm'
+                              : `border-slate-200 ${cfg.cardBorder} hover:shadow-xs`
                           }`}
                         >
-                          <span>{isCurrent ? 'Sedang Digunakan' : 'Login Sekarang'}</span>
-                          {!isCurrent && <ArrowRight className="w-3 h-3" />}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                          <div>
+                            {/* Header: Avatar, Name, Actor badge */}
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center space-x-3 min-w-0">
+                                <img
+                                  src={u.avatar}
+                                  alt={u.name}
+                                  className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 shrink-0"
+                                />
+                                <div className="min-w-0">
+                                  <div className="flex items-center space-x-1.5 flex-wrap">
+                                    <span
+                                      className={`text-[10px] font-bold px-2 py-0.5 rounded border inline-flex items-center space-x-1 ${cfg.badgeColor}`}
+                                    >
+                                      <Icon className="w-3 h-3 mr-1" />
+                                      <span>{u.actorLabel || u.role}</span>
+                                    </span>
+                                    {isCurrent && (
+                                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-600 text-white">
+                                        Aktif Saat Ini
+                                      </span>
+                                    )}
+                                  </div>
+                                  <h4 className="text-xs font-bold text-slate-900 mt-1 truncate" title={u.name}>
+                                    {u.name}
+                                  </h4>
+                                  <p className="text-[11px] text-slate-500 truncate" title={u.roleTitle}>
+                                    {u.roleTitle}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Credential Box (Username & Password) */}
+                            <div className="mt-3.5 p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 space-y-2">
+                              {/* Username */}
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-[11px] font-medium text-slate-500">Username:</span>
+                                <div className="flex items-center space-x-1.5">
+                                  <code className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
+                                    {u.username}
+                                  </code>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopy(u.username, `u-${u.id}`)}
+                                    title="Salin Username"
+                                    className="p-1 rounded text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                                  >
+                                    {copiedKey === `u-${u.id}` ? (
+                                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                    ) : (
+                                      <Copy className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Password */}
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-[11px] font-medium text-slate-500">Password:</span>
+                                <div className="flex items-center space-x-1.5">
+                                  <code className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
+                                    {isRevealed ? u.password : '••••••••'}
+                                  </code>
+                                  <button
+                                    type="button"
+                                    onClick={() => togglePasswordReveal(u.id)}
+                                    title={isRevealed ? 'Sembunyikan Password' : 'Lihat Password'}
+                                    className="p-1 rounded text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                                  >
+                                    {isRevealed ? (
+                                      <EyeOff className="w-3.5 h-3.5 text-slate-600" />
+                                    ) : (
+                                      <Eye className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopy(u.password || '', `p-${u.id}`)}
+                                    title="Salin Password"
+                                    className="p-1 rounded text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                                  >
+                                    {copiedKey === `p-${u.id}` ? (
+                                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                    ) : (
+                                      <Copy className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Brief scope description */}
+                            <div className="mt-2.5 text-[11px] text-slate-500 leading-relaxed">
+                              <span className="font-medium text-slate-700">Cakupan Kerja: </span>
+                              {cfg.scopeSummary}
+                            </div>
+                          </div>
+
+                          {/* Footer Actions */}
+                          <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleQuickFill(u)}
+                              className="text-[11px] font-semibold text-slate-600 hover:text-blue-600 transition"
+                            >
+                              Isi ke Form
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDirectLogin(u)}
+                              disabled={isCurrent}
+                              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                                isCurrent
+                                  ? 'bg-slate-100 text-slate-400 cursor-default'
+                                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-2xs'
+                              }`}
+                            >
+                              <span>{isCurrent ? 'Sedang Digunakan' : 'Login Sekarang'}</span>
+                              {!isCurrent && <ArrowRight className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* Entity 2: KJSB Subkhi Abdul Hakim */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-1.5 border-b border-emerald-200">
+                  <div className="flex items-center space-x-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                    <h4 className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
+                      KJSB SUBKHI ABDUL HAKIM AT-TIGHOLY & REKAN (Koordinator: Ivan)
+                    </h4>
+                  </div>
+                  <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-mono">
+                    Akses 15 Paket SPK Resmi
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {users
+                    .filter((u) => u.subcontractorId === 'sub-01')
+                    .map((u) => {
+                      const cfg = getActorConfig(u);
+                      const Icon = cfg.icon;
+                      const isCurrent = currentUser.id === u.id;
+                      const isRevealed = !!revealedPasswords[u.id];
+
+                      return (
+                        <div
+                          key={u.id}
+                          className={`p-4 rounded-xl border transition-all bg-white relative flex flex-col justify-between ${
+                            isCurrent
+                              ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm'
+                              : `border-slate-200 ${cfg.cardBorder} hover:shadow-xs`
+                          }`}
+                        >
+                          <div>
+                            {/* Header: Avatar, Name, Actor badge */}
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center space-x-3 min-w-0">
+                                <img
+                                  src={u.avatar}
+                                  alt={u.name}
+                                  className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 shrink-0"
+                                />
+                                <div className="min-w-0">
+                                  <div className="flex items-center space-x-1.5 flex-wrap">
+                                    <span
+                                      className={`text-[10px] font-bold px-2 py-0.5 rounded border inline-flex items-center space-x-1 ${cfg.badgeColor}`}
+                                    >
+                                      <Icon className="w-3 h-3 mr-1" />
+                                      <span>{u.actorLabel || u.role}</span>
+                                    </span>
+                                    {isCurrent && (
+                                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-600 text-white">
+                                        Aktif Saat Ini
+                                      </span>
+                                    )}
+                                  </div>
+                                  <h4 className="text-xs font-bold text-slate-900 mt-1 truncate" title={u.name}>
+                                    {u.name}
+                                  </h4>
+                                  <p className="text-[11px] text-slate-500 truncate" title={u.roleTitle}>
+                                    {u.roleTitle}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Credential Box (Username & Password) */}
+                            <div className="mt-3.5 p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 space-y-2">
+                              {/* Username */}
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-[11px] font-medium text-slate-500">Username:</span>
+                                <div className="flex items-center space-x-1.5">
+                                  <code className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
+                                    {u.username}
+                                  </code>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopy(u.username, `u-${u.id}`)}
+                                    title="Salin Username"
+                                    className="p-1 rounded text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                                  >
+                                    {copiedKey === `u-${u.id}` ? (
+                                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                    ) : (
+                                      <Copy className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Password */}
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-[11px] font-medium text-slate-500">Password:</span>
+                                <div className="flex items-center space-x-1.5">
+                                  <code className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
+                                    {isRevealed ? u.password : '••••••••'}
+                                  </code>
+                                  <button
+                                    type="button"
+                                    onClick={() => togglePasswordReveal(u.id)}
+                                    title={isRevealed ? 'Sembunyikan Password' : 'Lihat Password'}
+                                    className="p-1 rounded text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                                  >
+                                    {isRevealed ? (
+                                      <EyeOff className="w-3.5 h-3.5 text-slate-600" />
+                                    ) : (
+                                      <Eye className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopy(u.password || '', `p-${u.id}`)}
+                                    title="Salin Password"
+                                    className="p-1 rounded text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                                  >
+                                    {copiedKey === `p-${u.id}` ? (
+                                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                    ) : (
+                                      <Copy className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Brief scope description */}
+                            <div className="mt-2.5 text-[11px] text-slate-500 leading-relaxed">
+                              <span className="font-medium text-slate-700">Cakupan Kerja: </span>
+                              {cfg.scopeSummary}
+                            </div>
+                          </div>
+
+                          {/* Footer Actions */}
+                          <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleQuickFill(u)}
+                              className="text-[11px] font-semibold text-slate-600 hover:text-blue-600 transition"
+                            >
+                              Isi ke Form
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDirectLogin(u)}
+                              disabled={isCurrent}
+                              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                                isCurrent
+                                  ? 'bg-slate-100 text-slate-400 cursor-default'
+                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                              }`}
+                            >
+                              <span>{isCurrent ? 'Sedang Digunakan' : 'Login Sekarang'}</span>
+                              {!isCurrent && <ArrowRight className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* Entity 3: KJSB Syahrial & Rekan */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-1.5 border-b border-teal-200">
+                  <div className="flex items-center space-x-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-teal-600"></span>
+                    <h4 className="text-xs font-bold text-teal-950 uppercase tracking-wider">
+                      KJSB SYAHRIAL & REKAN (Koordinator: Juli)
+                    </h4>
+                  </div>
+                  <span className="text-[10px] font-semibold text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200 font-mono">
+                    Akses 11 Paket SPK Resmi
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {users
+                    .filter((u) => u.subcontractorId === 'sub-02')
+                    .map((u) => {
+                      const cfg = getActorConfig(u);
+                      const Icon = cfg.icon;
+                      const isCurrent = currentUser.id === u.id;
+                      const isRevealed = !!revealedPasswords[u.id];
+
+                      return (
+                        <div
+                          key={u.id}
+                          className={`p-4 rounded-xl border transition-all bg-white relative flex flex-col justify-between ${
+                            isCurrent
+                              ? 'border-teal-500 ring-2 ring-teal-500/20 shadow-sm'
+                              : `border-slate-200 ${cfg.cardBorder} hover:shadow-xs`
+                          }`}
+                        >
+                          <div>
+                            {/* Header: Avatar, Name, Actor badge */}
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center space-x-3 min-w-0">
+                                <img
+                                  src={u.avatar}
+                                  alt={u.name}
+                                  className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 shrink-0"
+                                />
+                                <div className="min-w-0">
+                                  <div className="flex items-center space-x-1.5 flex-wrap">
+                                    <span
+                                      className={`text-[10px] font-bold px-2 py-0.5 rounded border inline-flex items-center space-x-1 ${cfg.badgeColor}`}
+                                    >
+                                      <Icon className="w-3 h-3 mr-1" />
+                                      <span>{u.actorLabel || u.role}</span>
+                                    </span>
+                                    {isCurrent && (
+                                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-600 text-white">
+                                        Aktif Saat Ini
+                                      </span>
+                                    )}
+                                  </div>
+                                  <h4 className="text-xs font-bold text-slate-900 mt-1 truncate" title={u.name}>
+                                    {u.name}
+                                  </h4>
+                                  <p className="text-[11px] text-slate-500 truncate" title={u.roleTitle}>
+                                    {u.roleTitle}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Credential Box (Username & Password) */}
+                            <div className="mt-3.5 p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 space-y-2">
+                              {/* Username */}
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-[11px] font-medium text-slate-500">Username:</span>
+                                <div className="flex items-center space-x-1.5">
+                                  <code className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
+                                    {u.username}
+                                  </code>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopy(u.username, `u-${u.id}`)}
+                                    title="Salin Username"
+                                    className="p-1 rounded text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                                  >
+                                    {copiedKey === `u-${u.id}` ? (
+                                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                    ) : (
+                                      <Copy className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Password */}
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-[11px] font-medium text-slate-500">Password:</span>
+                                <div className="flex items-center space-x-1.5">
+                                  <code className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
+                                    {isRevealed ? u.password : '••••••••'}
+                                  </code>
+                                  <button
+                                    type="button"
+                                    onClick={() => togglePasswordReveal(u.id)}
+                                    title={isRevealed ? 'Sembunyikan Password' : 'Lihat Password'}
+                                    className="p-1 rounded text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                                  >
+                                    {isRevealed ? (
+                                      <EyeOff className="w-3.5 h-3.5 text-slate-600" />
+                                    ) : (
+                                      <Eye className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopy(u.password || '', `p-${u.id}`)}
+                                    title="Salin Password"
+                                    className="p-1 rounded text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                                  >
+                                    {copiedKey === `p-${u.id}` ? (
+                                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                    ) : (
+                                      <Copy className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Brief scope description */}
+                            <div className="mt-2.5 text-[11px] text-slate-500 leading-relaxed">
+                              <span className="font-medium text-slate-700">Cakupan Kerja: </span>
+                              {cfg.scopeSummary}
+                            </div>
+                          </div>
+
+                          {/* Footer Actions */}
+                          <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleQuickFill(u)}
+                              className="text-[11px] font-semibold text-slate-600 hover:text-blue-600 transition"
+                            >
+                              Isi ke Form
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDirectLogin(u)}
+                              disabled={isCurrent}
+                              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                                isCurrent
+                                  ? 'bg-slate-100 text-slate-400 cursor-default'
+                                  : 'bg-teal-600 hover:bg-teal-700 text-white shadow-2xs'
+                              }`}
+                            >
+                              <span>{isCurrent ? 'Sedang Digunakan' : 'Login Sekarang'}</span>
+                              {!isCurrent && <ArrowRight className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
               </div>
             </div>
           )}
@@ -491,7 +837,7 @@ export const LoginCredentialModal: React.FC<LoginCredentialModalProps> = ({
                     className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition shadow-xs flex items-center justify-center space-x-2 cursor-pointer mt-2"
                   >
                     <LogIn className="w-4 h-4" />
-                    <span>Masuk ke Sistem</span>
+                    <span>Masuk</span>
                   </button>
                 </form>
               </div>
@@ -501,49 +847,42 @@ export const LoginCredentialModal: React.FC<LoginCredentialModalProps> = ({
           {/* TAB 3: PERMISSION MATRIX */}
           {activeTab === 'matrix' && (
             <div className="space-y-4">
-              <div className="p-3 bg-slate-100 rounded-xl text-xs text-slate-700">
-                Tabel perbandingan kewenangan dan hak akses dari ke-7 aktor dalam operasional proyek WBS Pertamina EP Zona 4.
+              <div className="p-3 bg-slate-100 rounded-xl text-xs text-slate-700 leading-relaxed">
+                Matriks perbandingan wewenang dan cakupan hak akses seluruh aktor operasional proyek sesuai struktur organisasi resmi: <strong className="text-slate-900">PT Pertamina Hulu Rokan Zona 4</strong>, <strong className="text-slate-900">KJSB SUBKHI ABDUL HAKIM AT-TIGHOLY & REKAN</strong> (Koordinator: Ivan), dan <strong className="text-slate-900">KJSB SYAHRIAL & REKAN</strong> (Koordinator: Juli).
               </div>
 
               <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
-                      <th className="py-2.5 px-3">Modul & Fitur Sistem</th>
-                      <th className="py-2.5 px-2 text-center text-purple-700">Super Admin</th>
-                      <th className="py-2.5 px-2 text-center text-blue-700">Koord. Survey</th>
-                      <th className="py-2.5 px-2 text-center text-emerald-700">Koord. Subkon</th>
-                      <th className="py-2.5 px-2 text-center text-amber-700">Surveyor</th>
-                      <th className="py-2.5 px-2 text-center text-rose-700">Koord. Admin</th>
-                      <th className="py-2.5 px-2 text-center text-cyan-700">Koord. Drafter</th>
-                      <th className="py-2.5 px-2 text-center text-teal-700">Drafter</th>
+                      <th className="py-2.5 px-3 min-w-[170px]">Modul & Fitur Sistem</th>
+                      <th className="py-2.5 px-2 text-center text-purple-700">Super Admin<br/><span className="text-[10px] font-normal text-slate-500">(Admin)</span></th>
+                      <th className="py-2.5 px-2 text-center text-blue-700">Koord. Survey<br/><span className="text-[10px] font-normal text-slate-500">(Yogi A.)</span></th>
+                      <th className="py-2.5 px-2 text-center text-rose-700">Koord. Admin<br/><span className="text-[10px] font-normal text-slate-500">(Yuswa A.)</span></th>
+                      <th className="py-2.5 px-2 text-center text-emerald-700">Koord. Subkon Subkhi<br/><span className="text-[10px] font-bold text-emerald-600">(Ivan)</span></th>
+                      <th className="py-2.5 px-2 text-center text-amber-700">Surveyor Subkhi<br/><span className="text-[10px] font-normal text-slate-500">(Ian)</span></th>
+                      <th className="py-2.5 px-2 text-center text-teal-700">Koord. Subkon Syahrial<br/><span className="text-[10px] font-bold text-teal-600">(Juli)</span></th>
+                      <th className="py-2.5 px-2 text-center text-cyan-700">Koord. Drafter Syahrial<br/><span className="text-[10px] font-normal text-slate-500">(Hari S.)</span></th>
+                      <th className="py-2.5 px-2 text-center text-indigo-700">Drafter Syahrial<br/><span className="text-[10px] font-normal text-slate-500">(Annisa/Bayu)</span></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-[11px]">
                     <tr>
-                      <td className="py-2 px-3 font-medium text-slate-800">Monitoring SPK & Buat/Edit SPK</td>
+                      <td className="py-2.5 px-3 font-medium text-slate-800">Cakupan Paket SPK yang Diakses</td>
+                      <td className="py-2 px-2 text-center text-purple-700 font-bold">Semua (26 SPK)</td>
+                      <td className="py-2 px-2 text-center text-blue-700 font-bold">Semua (26 SPK)</td>
+                      <td className="py-2 px-2 text-center text-rose-700 font-bold">Semua (26 SPK)</td>
+                      <td className="py-2 px-2 text-center text-emerald-700 font-bold bg-emerald-50/50">15 SPK Subkhi</td>
+                      <td className="py-2 px-2 text-center text-amber-700 font-medium">15 SPK Subkhi</td>
+                      <td className="py-2 px-2 text-center text-teal-700 font-bold bg-teal-50/50">11 SPK Syahrial</td>
+                      <td className="py-2 px-2 text-center text-cyan-700 font-medium">11 SPK Syahrial</td>
+                      <td className="py-2 px-2 text-center text-indigo-700 font-medium">11 SPK Syahrial</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 px-3 font-medium text-slate-800">Buat / Edit Master Paket SPK</td>
                       <td className="py-2 px-2 text-center text-emerald-600 font-bold">Full</td>
-                      <td className="py-2 px-2 text-center text-blue-600">View/Edit</td>
-                      <td className="py-2 px-2 text-center text-slate-400">View SPK</td>
-                      <td className="py-2 px-2 text-center text-slate-300">-</td>
-                      <td className="py-2 px-2 text-center text-blue-600">View Doc</td>
-                      <td className="py-2 px-2 text-center text-slate-300">-</td>
-                      <td className="py-2 px-2 text-center text-slate-300">-</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 px-3 font-medium text-slate-800">Atur Jadwal & WBS (Tanggal Mulai/Selesai)</td>
-                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Ya</td>
-                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Ya</td>
-                      <td className="py-2 px-2 text-center text-slate-400">View</td>
-                      <td className="py-2 px-2 text-center text-slate-400">View</td>
-                      <td className="py-2 px-2 text-center text-slate-400">View</td>
-                      <td className="py-2 px-2 text-center text-slate-400">View</td>
-                      <td className="py-2 px-2 text-center text-slate-400">View</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 px-3 font-medium text-slate-800">Kunci Baseline WBS</td>
-                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Ya</td>
-                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Ya</td>
+                      <td className="py-2 px-2 text-center text-blue-600">Edit Teknis</td>
+                      <td className="py-2 px-2 text-center text-blue-600">Edit Tagihan</td>
                       <td className="py-2 px-2 text-center text-slate-300">-</td>
                       <td className="py-2 px-2 text-center text-slate-300">-</td>
                       <td className="py-2 px-2 text-center text-slate-300">-</td>
@@ -551,44 +890,59 @@ export const LoginCredentialModal: React.FC<LoginCredentialModalProps> = ({
                       <td className="py-2 px-2 text-center text-slate-300">-</td>
                     </tr>
                     <tr>
-                      <td className="py-2 px-3 font-medium text-slate-800">Input & Update Progres Lapangan</td>
+                      <td className="py-2 px-3 font-medium text-slate-800">Kunci Baseline WBS (Lock Schedule)</td>
                       <td className="py-2 px-2 text-center text-emerald-600 font-bold">Ya</td>
                       <td className="py-2 px-2 text-center text-emerald-600 font-bold">Ya</td>
-                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Ya</td>
-                      <td className="py-2 px-2 text-center text-blue-600">Draft</td>
                       <td className="py-2 px-2 text-center text-slate-300">-</td>
-                      <td className="py-2 px-2 text-center text-slate-400">View</td>
+                      <td className="py-2 px-2 text-center text-slate-300">-</td>
+                      <td className="py-2 px-2 text-center text-slate-300">-</td>
+                      <td className="py-2 px-2 text-center text-slate-300">-</td>
+                      <td className="py-2 px-2 text-center text-slate-300">-</td>
+                      <td className="py-2 px-2 text-center text-slate-300">-</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 px-3 font-medium text-slate-800">Input & Update Progres Fisik (%)</td>
+                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Ya</td>
+                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Verifikasi</td>
+                      <td className="py-2 px-2 text-center text-slate-300">-</td>
+                      <td className="py-2 px-2 text-center text-emerald-600 font-bold bg-emerald-50/50">Input 15 SPK</td>
+                      <td className="py-2 px-2 text-center text-amber-600">Draft Lapangan</td>
+                      <td className="py-2 px-2 text-center text-teal-600 font-bold bg-teal-50/50">Input 11 SPK</td>
+                      <td className="py-2 px-2 text-center text-cyan-600">Draft CAD/GIS</td>
                       <td className="py-2 px-2 text-center text-slate-400">View</td>
                     </tr>
                     <tr>
-                      <td className="py-2 px-3 font-medium text-slate-800">Pencatatan Timesheet Harian (Jam Kerja)</td>
-                      <td className="py-2 px-2 text-center text-slate-400">Approve</td>
-                      <td className="py-2 px-2 text-center text-slate-400">Approve</td>
+                      <td className="py-2 px-3 font-medium text-slate-800">Pencatatan Timesheet Harian</td>
+                      <td className="py-2 px-2 text-center text-slate-400">Review</td>
+                      <td className="py-2 px-2 text-center text-slate-400">Review</td>
+                      <td className="py-2 px-2 text-center text-slate-400">Rekap</td>
                       <td className="py-2 px-2 text-center text-slate-400">Verifikasi</td>
-                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Input</td>
-                      <td className="py-2 px-2 text-center text-blue-600">Rekap</td>
-                      <td className="py-2 px-2 text-center text-slate-400">Approve</td>
-                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Input</td>
+                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Input Harian</td>
+                      <td className="py-2 px-2 text-center text-slate-400">Verifikasi</td>
+                      <td className="py-2 px-2 text-center text-slate-400">Verifikasi</td>
+                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Input Harian</td>
                     </tr>
                     <tr>
-                      <td className="py-2 px-3 font-medium text-slate-800">Laporan Progres, S-Curve & Export Excel</td>
-                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Ya</td>
-                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Ya</td>
-                      <td className="py-2 px-2 text-center text-blue-600">Download</td>
+                      <td className="py-2 px-3 font-medium text-slate-800">Approval / Persetujuan Timesheet</td>
+                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Final Approval</td>
+                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Approve Semua</td>
+                      <td className="py-2 px-2 text-center text-slate-400">Audit</td>
+                      <td className="py-2 px-2 text-center text-emerald-600 font-bold bg-emerald-50/50">Approve Tim Subkhi</td>
                       <td className="py-2 px-2 text-center text-slate-300">-</td>
-                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Full</td>
-                      <td className="py-2 px-2 text-center text-blue-600">Download</td>
+                      <td className="py-2 px-2 text-center text-teal-600 font-bold bg-teal-50/50">Approve Tim Syahrial</td>
+                      <td className="py-2 px-2 text-center text-cyan-600 font-bold">QC Tim Drafter</td>
                       <td className="py-2 px-2 text-center text-slate-300">-</td>
                     </tr>
                     <tr>
-                      <td className="py-2 px-3 font-medium text-slate-800">Manajemen Dokumen & Gambar Teknis</td>
-                      <td className="py-2 px-2 text-center text-blue-600">Full</td>
-                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Validasi</td>
-                      <td className="py-2 px-2 text-center text-blue-600">Submit</td>
-                      <td className="py-2 px-2 text-center text-blue-600">Raw Data</td>
-                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Arsip</td>
-                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">QC CAD/GIS</td>
-                      <td className="py-2 px-2 text-center text-blue-600">Upload DWG</td>
+                      <td className="py-2 px-3 font-medium text-slate-800">Penagihan, BASTP & Laporan Eksekutif</td>
+                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Full Sign</td>
+                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Sign Teknis</td>
+                      <td className="py-2 px-2 text-center text-emerald-600 font-bold">Penyusun Utama</td>
+                      <td className="py-2 px-2 text-center text-blue-600">Dokumen Subkhi</td>
+                      <td className="py-2 px-2 text-center text-slate-300">-</td>
+                      <td className="py-2 px-2 text-center text-blue-600">Dokumen Syahrial</td>
+                      <td className="py-2 px-2 text-center text-slate-300">-</td>
+                      <td className="py-2 px-2 text-center text-slate-300">-</td>
                     </tr>
                   </tbody>
                 </table>

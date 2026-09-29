@@ -10,6 +10,7 @@ import { Sidebar } from './components/Sidebar';
 import { FloatingTimer } from './components/FloatingTimer';
 import { RoleSwitcherModal } from './components/RoleSwitcherModal';
 import { LoginCredentialModal } from './components/LoginCredentialModal';
+import { LoginView } from './components/LoginView';
 import { SpkPortfolioView } from './components/SpkPortfolioView';
 import { DashboardView } from './components/DashboardView';
 import { WbsGanttView } from './components/WbsGanttView';
@@ -30,10 +31,11 @@ import {
   Users2,
   CheckCircle2,
   Briefcase,
+  LogIn,
 } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
-  const { activeTab, setActiveTab, toastMessage } = useApp();
+  const { activeTab, setActiveTab, toastMessage, currentUser } = useApp();
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [isCredentialModalOpen, setIsCredentialModalOpen] = useState(false);
 
@@ -79,13 +81,13 @@ const MainLayout: React.FC = () => {
         })}
       </div>
 
-      {/* Body: Sidebar + Main Dynamic View */}
-      <div className="flex-1 flex max-w-7xl w-full mx-auto">
+      {/* Body: Sidebar + Main Dynamic View (Full 16:9 Widescreen / Laptop Layout) */}
+      <div className="flex-1 flex w-full">
         <div className="no-print hidden md:block">
           <Sidebar />
         </div>
 
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 w-full overflow-x-hidden">
           {activeTab === 'portfolio' && <SpkPortfolioView />}
           {activeTab === 'dashboard' && <DashboardView />}
           {activeTab === 'wbs' && <WbsGanttView />}
@@ -95,6 +97,7 @@ const MainLayout: React.FC = () => {
           {activeTab === 'messages' && <MessageBoardView />}
           {activeTab === 'reports' && <ReportsView />}
           {activeTab === 'subcontractors' && <SubcontractorView />}
+          {activeTab === 'login' && <LoginView />}
         </main>
       </div>
 
@@ -107,11 +110,21 @@ const MainLayout: React.FC = () => {
         onClose={() => setIsRoleModalOpen(false)}
       />
 
-      {/* 7 Dummy Accounts Credential Modal */}
-      <LoginCredentialModal
-        isOpen={isCredentialModalOpen}
-        onClose={() => setIsCredentialModalOpen(false)}
-      />
+      {/* 9 User Accounts Credential Modal - Hanya saat login di akun Super Admin */}
+      {currentUser.role === 'SUPER_ADMIN' && (
+        <LoginCredentialModal
+          isOpen={isCredentialModalOpen}
+          onClose={() => setIsCredentialModalOpen(false)}
+        />
+      )}
+
+      {/* App Footer Credit */}
+      <footer className="no-print mt-auto py-3 border-t border-slate-200/80 bg-white text-center text-xs text-slate-400">
+        <div className="w-full px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px]">
+          <span>Portal Pengawasan SPK & WBS Topografi</span>
+          <span className="font-semibold text-slate-600">Copyright © PT Sucofindo Cabang Palembang</span>
+        </div>
+      </footer>
 
       {/* Toast Notification */}
       {toastMessage && (
@@ -126,10 +139,20 @@ const MainLayout: React.FC = () => {
   );
 };
 
+const AppContent: React.FC = () => {
+  const { isAuthenticated } = useApp();
+
+  if (!isAuthenticated) {
+    return <LoginView />;
+  }
+
+  return <MainLayout />;
+};
+
 export default function App() {
   return (
     <AppProvider>
-      <MainLayout />
+      <AppContent />
     </AppProvider>
   );
 }

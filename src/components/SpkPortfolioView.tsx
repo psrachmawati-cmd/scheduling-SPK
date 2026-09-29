@@ -33,37 +33,58 @@ import { AddSpkModal } from './AddSpkModal';
 import { EditSpkModal } from './EditSpkModal';
 
 export const SpkPortfolioView: React.FC = () => {
-  const { projects, activeProjectId, switchProject, setActiveTab } = useApp();
+  const {
+    projects,
+    accessibleProjects,
+    isUserAllowedProject,
+    currentUser,
+    activeProjectId,
+    switchProject,
+    setActiveTab,
+  } = useApp();
+
+  const isSubcontractorActor = !!currentUser.subcontractorId;
+  const canManageMasterSpk =
+    currentUser.role === 'SUPER_ADMIN' ||
+    currentUser.actorType === 'SUPER_ADMIN' ||
+    currentUser.actorType === 'KOORDINATOR_ADMINISTRASI' ||
+    currentUser.role === 'PROJECT_MANAGER';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [fieldFilter, setFieldFilter] = useState('');
-  const [subFilter, setSubFilter] = useState('');
+  const [subFilter, setSubFilter] = useState(() => {
+    if (currentUser.subcontractorId === 'sub-01') return 'SUBKHI';
+    if (currentUser.subcontractorId === 'sub-02') return 'SYAHRIAL';
+    return '';
+  });
   const [statusFilter, setStatusFilter] = useState('');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editTargetProject, setEditTargetProject] = useState<Project | null>(null);
   const [showManualGuide, setShowManualGuide] = useState(false);
 
-  // Statistics across all SPKs
-  const totalSPKs = projects.length;
-  const activeSPKs = projects.filter((p) => p.status === 'ACTIVE').length;
-  const totalContractValue = projects.reduce((sum, p) => sum + (p.contractValue || 0), 0);
+  // Statistics across all SPKs or filtered for actor
+  const statsBaseProjects = isSubcontractorActor ? accessibleProjects : projects;
+  const totalSPKs = statsBaseProjects.length;
+  const activeSPKs = statsBaseProjects.filter((p) => p.status === 'ACTIVE').length;
+  const totalContractValue = statsBaseProjects.reduce((sum, p) => sum + (p.contractValue || 0), 0);
 
   const avgPlan = Number(
-    (projects.reduce((sum, p) => sum + p.targetProgressPlan, 0) / (totalSPKs || 1)).toFixed(1)
+    (statsBaseProjects.reduce((sum, p) => sum + p.targetProgressPlan, 0) / (totalSPKs || 1)).toFixed(1)
   );
   const avgActual = Number(
-    (projects.reduce((sum, p) => sum + p.currentProgressActual, 0) / (totalSPKs || 1)).toFixed(1)
+    (statsBaseProjects.reduce((sum, p) => sum + p.currentProgressActual, 0) / (totalSPKs || 1)).toFixed(1)
   );
   const avgDeviation = Number((avgActual - avgPlan).toFixed(1));
 
-  const delayedCount = projects.filter(
+  const delayedCount = statsBaseProjects.filter(
     (p) => p.healthStatus === 'DELAYED' || p.healthStatus === 'CRITICAL'
   ).length;
-  const onTrackCount = projects.filter((p) => p.healthStatus === 'ON_TRACK').length;
-  const completedCount = projects.filter((p) => p.status === 'COMPLETED' || p.healthStatus === 'COMPLETED').length;
+  const onTrackCount = statsBaseProjects.filter((p) => p.healthStatus === 'ON_TRACK').length;
+  const completedCount = statsBaseProjects.filter((p) => p.status === 'COMPLETED' || p.healthStatus === 'COMPLETED').length;
 
-  const filteredProjects = projects.filter((p) => {
+  const baseProjectsList = isSubcontractorActor ? accessibleProjects : projects;
+  const filteredProjects = baseProjectsList.filter((p) => {
     if (
       searchTerm &&
       !p.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -156,14 +177,6 @@ export const SpkPortfolioView: React.FC = () => {
             <p className="text-sm text-slate-600 mt-1">
               Pengawasan operasional simultan seluruh Surat Perintah Kerja (SPK) survey topografi, pemetaan terestris, dan drone LiDAR di Wilayah Kerja Zona 4.
             </p>
-            <div className="flex flex-wrap items-center gap-2 mt-2.5">
-              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200">
-                2 Subkontraktor Resmi: KJSB SUBKHI ABDUL HAKIM AT-TIGHOLY & REKAN &bull; KJSB SYAHRIAL & REKAN
-              </span>
-              <span className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200">
-                PT Sucofindo: Pengelola Kontrak Utama (Bukan Kontraktor)
-              </span>
-            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-center">
@@ -180,13 +193,15 @@ export const SpkPortfolioView: React.FC = () => {
               )}
             </button>
 
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm shadow-emerald-600/20 transition"
-            >
-              <Plus className="w-4 h-4" />
-              <span>+ Tambah SPK Baru</span>
-            </button>
+            {canManageMasterSpk && (
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm shadow-emerald-600/20 transition"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Tambah SPK Baru</span>
+              </button>
+            )}
 
             <button
               onClick={() => handleSelectSPK(activeProjectId)}
@@ -211,7 +226,7 @@ export const SpkPortfolioView: React.FC = () => {
                     Panduan Menambah & Merevisi SPK Berjalan (SOW Pertamina EP Zona 4)
                   </h3>
                   <p className="text-xs text-slate-600">
-                    Keseragaman WBS 4 Divisi, 53 item sub-pekerjaan terinci, dan 5 milestone operasional.
+                    Keseragaman WBS 4 Divisi, 19 paket pekerjaan Orde 2 (1.1 s/d 4.4), dan 5 milestone operasional.
                   </p>
                 </div>
               </div>
@@ -445,6 +460,17 @@ export const SpkPortfolioView: React.FC = () => {
                           {spk.scopeType.replace('_', ' ')}
                         </span>
                       )}
+                      {isSubcontractorActor && (
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            isUserAllowedProject(spk.id)
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-slate-100 text-slate-500 border-slate-200'
+                          }`}
+                        >
+                          {isUserAllowedProject(spk.id) ? 'Paket Anda' : 'Paket Rekanan'}
+                        </span>
+                      )}
                     </div>
                     {getHealthBadge(spk.healthStatus)}
                   </div>
@@ -543,14 +569,16 @@ export const SpkPortfolioView: React.FC = () => {
                       </span>
                     )}
 
-                    <button
-                      onClick={() => setEditTargetProject(spk)}
-                      className="px-2 py-1 rounded-md text-[11px] font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-1 transition"
-                      title="Edit Range Waktu, Nilai Kontrak, PIC, dll"
-                    >
-                      <Edit3 className="w-3 h-3 text-slate-500" />
-                      <span>Edit</span>
-                    </button>
+                    {canManageMasterSpk && (
+                      <button
+                        onClick={() => setEditTargetProject(spk)}
+                        className="px-2 py-1 rounded-md text-[11px] font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-1 transition"
+                        title="Edit Range Waktu, Nilai Kontrak, PIC, dll"
+                      >
+                        <Edit3 className="w-3 h-3 text-slate-500" />
+                        <span>Edit</span>
+                      </button>
+                    )}
                   </div>
 
                   <button
@@ -675,13 +703,15 @@ export const SpkPortfolioView: React.FC = () => {
 
                       <td className="py-3 px-3 text-right">
                         <div className="flex items-center justify-end space-x-1.5">
-                          <button
-                            onClick={() => setEditTargetProject(spk)}
-                            className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition"
-                            title="Edit SPK"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
+                          {canManageMasterSpk && (
+                            <button
+                              onClick={() => setEditTargetProject(spk)}
+                              className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition"
+                              title="Edit SPK"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           <button
                             onClick={() => handleSelectSPK(spk.id)}
                             className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-2xs transition inline-flex items-center space-x-1"
